@@ -39,84 +39,84 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        cameraView = findViewById(R.id.cameraView);
-        imageViewResult = findViewById(R.id.imageViewResult);
-        textViewResult = findViewById(R.id.textViewResult);
-        textViewResult.setMovementMethod(new ScrollingMovementMethod());
-
-        btnToggleCamera = findViewById(R.id.btnToggleCamera);
-        btnDetectObject = findViewById(R.id.btnDetectObject);
-
-        cameraView.addCameraKitListener(new CameraKitEventListener() {
-            @Override
-            public void onEvent(CameraKitEvent cameraKitEvent) {
-
-            }
-
-            @Override
-            public void onError(CameraKitError cameraKitError) {
-
-            }
-
-            @Override
-            public void onImage(CameraKitImage cameraKitImage) {
-
-                Bitmap bitmap = cameraKitImage.getBitmap();
-
-                bitmap = Bitmap.createScaledBitmap(bitmap, INPUT_SIZE, INPUT_SIZE, false);
-
-                imageViewResult.setImageBitmap(bitmap);
-
-                final List<Classifier.Recognition> results = classifier.recognizeImage(bitmap);
-
-                textViewResult.setText(results.toString());
-
-            }
-
-            @Override
-            public void onVideo(CameraKitVideo cameraKitVideo) {
-
-            }
-        });
-
-        btnToggleCamera.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                cameraView.toggleFacing();
-            }
-        });
-
-        btnDetectObject.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                cameraView.captureImage();
-            }
-        });
-
-        initTensorFlowAndLoadModel();
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        cameraView.start();
-    }
-
-    @Override
-    protected void onPause() {
-        cameraView.stop();
-        super.onPause();
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        executor.execute(new Runnable() {
-            @Override
-            public void run() {
-                classifier.close();
-            }
-        });
+//        cameraView = findViewById(R.id.cameraView);
+//        imageViewResult = findViewById(R.id.imageViewResult);
+//        textViewResult = findViewById(R.id.textViewResult);
+//        textViewResult.setMovementMethod(new ScrollingMovementMethod());
+//
+//        btnToggleCamera = findViewById(R.id.btnToggleCamera);
+//        btnDetectObject = findViewById(R.id.btnDetectObject);
+//
+//        cameraView.addCameraKitListener(new CameraKitEventListener() {
+//            @Override
+//            public void onEvent(CameraKitEvent cameraKitEvent) {
+//
+//            }
+//
+//            @Override
+//            public void onError(CameraKitError cameraKitError) {
+//
+//            }
+//
+//            @Override
+//            public void onImage(CameraKitImage cameraKitImage) {
+//
+//                Bitmap bitmap = cameraKitImage.getBitmap();
+//
+//                bitmap = Bitmap.createScaledBitmap(bitmap, INPUT_SIZE, INPUT_SIZE, false);
+//
+//                imageViewResult.setImageBitmap(bitmap);
+//
+//                final List<Classifier.Recognition> results = classifier.recognizeImage(bitmap);
+//
+//                textViewResult.setText(results.toString());
+//
+//            }
+//
+//            @Override
+//            public void onVideo(CameraKitVideo cameraKitVideo) {
+//
+//            }
+//        });
+//
+//        btnToggleCamera.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                cameraView.toggleFacing();
+//            }
+//        });
+//
+//        btnDetectObject.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                cameraView.captureImage();
+//            }
+//        });
+//
+//        initTensorFlowAndLoadModel();
+//    }
+//
+//    @Override
+//    protected void onResume() {
+//        super.onResume();
+//        cameraView.start();
+//    }
+//
+//    @Override
+//    protected void onPause() {
+//        cameraView.stop();
+//        super.onPause();
+//    }
+//
+//    @Override
+//    protected void onDestroy() {
+//        super.onDestroy();
+//        executor.execute(new Runnable() {
+//            @Override
+//            public void run() {
+//                classifier.close();
+//            }
+//        });
     }
 
     private void initTensorFlowAndLoadModel() {
