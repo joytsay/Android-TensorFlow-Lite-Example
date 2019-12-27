@@ -17,6 +17,7 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 import java.util.PriorityQueue;
 
@@ -36,8 +37,12 @@ public class TensorFlowImageClassifier implements Classifier {
 
     private Interpreter interpreter;
     private int inputSize;
-    private List<String> labelList;
+     List<String> labelList;
     private boolean quant;
+//    private Float[] embeddings;
+    private long startTime;
+    private long endTime;
+    private long frTime;
 
     private TensorFlowImageClassifier() {
 
@@ -50,26 +55,38 @@ public class TensorFlowImageClassifier implements Classifier {
                              boolean quant) throws IOException {
 
         TensorFlowImageClassifier classifier = new TensorFlowImageClassifier();
+        // Interpreter interface for TensorFlow Lite Models
         classifier.interpreter = new Interpreter(classifier.loadModelFile(assetManager, modelPath), new Interpreter.Options());
-        classifier.labelList = classifier.loadLabelList(assetManager, labelPath);
+//        classifier.labelList = classifier.loadLabelList(assetManager, labelPath);
         classifier.inputSize = inputSize;
-        classifier.quant = quant;
+//        classifier.quant = quant;
 
         return classifier;
     }
 
+
+
+
     @Override
     public List<Recognition> recognizeImage(Bitmap bitmap) {
         ByteBuffer byteBuffer = convertBitmapToByteBuffer(bitmap);
-        if(quant){
-            byte[][] result = new byte[1][labelList.size()];
-            interpreter.run(byteBuffer, result);
-            return getSortedResultByte(result);
-        } else {
-            float [][] result = new float[1][labelList.size()];
-            interpreter.run(byteBuffer, result);
-            return getSortedResultFloat(result);
-        }
+        float[][] embeddings = new float[1][512];
+        startTime = new Date().getTime();
+        interpreter.run(byteBuffer, embeddings);
+        endTime = new Date().getTime();
+        frTime = endTime - startTime;
+        return getResultEmbeddings(embeddings);
+
+        //deprecated code
+//        if(quant){
+//            byte[][] result = new byte[1][labelList.size()];
+//            interpreter.run(byteBuffer, result);
+//            return getSortedResultByte(result);
+//        } else {
+//            float [][] result = new float[1][labelList.size()];
+//            interpreter.run(byteBuffer, result);
+//            return getSortedResultFloat(result);
+//        }
 
     }
 
@@ -131,65 +148,74 @@ public class TensorFlowImageClassifier implements Classifier {
     }
 
     @SuppressLint("DefaultLocale")
-    private List<Recognition> getSortedResultByte(byte[][] labelProbArray) {
-
-        PriorityQueue<Recognition> pq =
-                new PriorityQueue<>(
-                        MAX_RESULTS,
-                        new Comparator<Recognition>() {
-                            @Override
-                            public int compare(Recognition lhs, Recognition rhs) {
-                                return Float.compare(rhs.getConfidence(), lhs.getConfidence());
-                            }
-                        });
-
-        for (int i = 0; i < labelList.size(); ++i) {
-            float confidence = (labelProbArray[0][i] & 0xff) / 255.0f;
-            if (confidence > THRESHOLD) {
-                pq.add(new Recognition("" + i,
-                        labelList.size() > i ? labelList.get(i) : "unknown",
-                        confidence, quant));
-            }
-        }
-
+    private List<Recognition> getResultEmbeddings(float[][] embeddingArray) {
         final ArrayList<Recognition> recognitions = new ArrayList<>();
-        int recognitionsSize = Math.min(pq.size(), MAX_RESULTS);
-        for (int i = 0; i < recognitionsSize; ++i) {
-            recognitions.add(pq.poll());
-        }
-
+        float confidence = 100;
+        Recognition result = new Recognition("0","unknown",confidence,quant,embeddingArray,frTime);
+        recognitions.add(result);
         return recognitions;
     }
 
-    @SuppressLint("DefaultLocale")
-    private List<Recognition> getSortedResultFloat(float[][] labelProbArray) {
-
-        PriorityQueue<Recognition> pq =
-                new PriorityQueue<>(
-                        MAX_RESULTS,
-                        new Comparator<Recognition>() {
-                            @Override
-                            public int compare(Recognition lhs, Recognition rhs) {
-                                return Float.compare(rhs.getConfidence(), lhs.getConfidence());
-                            }
-                        });
-
-        for (int i = 0; i < labelList.size(); ++i) {
-            float confidence = labelProbArray[0][i];
-            if (confidence > THRESHOLD) {
-                pq.add(new Recognition("" + i,
-                        labelList.size() > i ? labelList.get(i) : "unknown",
-                        confidence, quant));
-            }
-        }
-
-        final ArrayList<Recognition> recognitions = new ArrayList<>();
-        int recognitionsSize = Math.min(pq.size(), MAX_RESULTS);
-        for (int i = 0; i < recognitionsSize; ++i) {
-            recognitions.add(pq.poll());
-        }
-
-        return recognitions;
-    }
+//    @SuppressLint("DefaultLocale")
+//    private List<Recognition> getSortedResultByte(byte[][] labelProbArray) {
+//
+//        PriorityQueue<Recognition> pq =
+//                new PriorityQueue<>(
+//                        MAX_RESULTS,
+//                        new Comparator<Recognition>() {
+//                            @Override
+//                            public int compare(Recognition lhs, Recognition rhs) {
+//                                return Float.compare(rhs.getConfidence(), lhs.getConfidence());
+//                            }
+//                        });
+//
+//        for (int i = 0; i < labelList.size(); ++i) {
+//            float confidence = (labelProbArray[0][i] & 0xff) / 255.0f;
+//            if (confidence > THRESHOLD) {
+//                pq.add(new Recognition("" + i,
+//                        labelList.size() > i ? labelList.get(i) : "unknown",
+//                        confidence, quant));
+//            }
+//        }
+//
+//        final ArrayList<Recognition> recognitions = new ArrayList<>();
+//        int recognitionsSize = Math.min(pq.size(), MAX_RESULTS);
+//        for (int i = 0; i < recognitionsSize; ++i) {
+//            recognitions.add(pq.poll());
+//        }
+//
+//        return recognitions;
+//    }
+//
+//    @SuppressLint("DefaultLocale")
+//    private List<Recognition> getSortedResultFloat(float[][] labelProbArray) {
+//
+//        PriorityQueue<Recognition> pq =
+//                new PriorityQueue<>(
+//                        MAX_RESULTS,
+//                        new Comparator<Recognition>() {
+//                            @Override
+//                            public int compare(Recognition lhs, Recognition rhs) {
+//                                return Float.compare(rhs.getConfidence(), lhs.getConfidence());
+//                            }
+//                        });
+//
+//        for (int i = 0; i < labelList.size(); ++i) {
+//            float confidence = labelProbArray[0][i];
+//            if (confidence > THRESHOLD) {
+//                pq.add(new Recognition("" + i,
+//                        labelList.size() > i ? labelList.get(i) : "unknown",
+//                        confidence, quant));
+//            }
+//        }
+//
+//        final ArrayList<Recognition> recognitions = new ArrayList<>();
+//        int recognitionsSize = Math.min(pq.size(), MAX_RESULTS);
+//        for (int i = 0; i < recognitionsSize; ++i) {
+//            recognitions.add(pq.poll());
+//        }
+//
+//        return recognitions;
+//    }
 
 }

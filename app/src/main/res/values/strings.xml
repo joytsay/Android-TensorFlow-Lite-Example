@@ -1,10 +1,9 @@
 <resources>
-    <string name="app_name">GeoVision Face Recognition Example</string>
+    <string name="app_name">GeoVision Face Recognition</string>
     <string name="toggle_camera">Toggle Camera</string>
     <string name="detect_object">Detect Object</string>
     <string name="load_img1">Load Face One</string>
     <string name="load_img2">Load Face Two</string>
     <string name="fr_run">Run Face Recognition</string>
-    <string name="fr_text">Face Recognition Score:</string>
-    <string name="fr_time">Execute Time:</string>
+    <string name="fr_embeddings">FR Results:</string>
 </resources>
