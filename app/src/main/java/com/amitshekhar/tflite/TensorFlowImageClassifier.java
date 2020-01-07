@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import java.lang.Math;
 import java.util.PriorityQueue;
 
 /**
@@ -154,6 +155,16 @@ public class TensorFlowImageClassifier implements Classifier {
         Recognition result = new Recognition("0","unknown",confidence,quant,embeddingArray,frTime);
         recognitions.add(result);
         return recognitions;
+    }
+
+
+    private double getConfidenceScore(float[][] embeddingArray) {
+        double sum = 0;
+        for(int i=0;i<512;i++){
+            sum += Math.pow(embeddingArray[0][i] - embeddingArray[1][i],2);
+        }
+        double score = Math.sqrt(sum);
+        return score;
     }
 
 //    @SuppressLint("DefaultLocale")
