@@ -35,12 +35,17 @@ public interface Classifier {
         /**
          * Extracted 512D embeddings for face recognition.
          */
-        private final float[][] embeddings = new float[1][512];
+        private final float[][] embeddings01 = new float[1][512];
+        private final float[][] embeddings02 = new float[1][512];
 
         /**
          * Execute time for face recognition.
          */
-        private final long frTime;
+        private final long frTime[] = new long[2];
+        /**
+         * Output String for Textview.
+         */
+        private String resultString = "";
 
         public Recognition(
                 final String id, final String title, final Float confidence, final boolean quant, float[][] embeddings, final long time) {
@@ -48,8 +53,13 @@ public interface Classifier {
             this.title = title;
             this.confidence = confidence;
             this.quant = quant;
-            System.arraycopy(embeddings, 0, this.embeddings, 0,this.embeddings.length);
-            this.frTime = time;
+            int nId = Integer.parseInt(id);
+            if(nId==0) {
+                System.arraycopy(embeddings, 0, this.embeddings01, 0, this.embeddings01.length);
+            }else {
+                System.arraycopy(embeddings, 0, this.embeddings02, 0, this.embeddings02.length);
+            }
+            this.frTime[nId] = time;
         }
 
         public String getId() {
@@ -60,19 +70,23 @@ public interface Classifier {
             return title;
         }
 
-        public Float getConfidence() {
+        public double getConfidence() {
             return confidence;
         }
 
         @Override
         public String toString() {
-            String resultString = "";
-            if (embeddings[0] != null) {
-                resultString += String.format("feature[0,1,128,510,511](%.3f,%.3f,%.3f,%.3f,%.3f) ",
-                        embeddings[0][0], embeddings[0][1], embeddings[0][128], embeddings[0][510], embeddings[0][511]);
+            if (frTime[0] > 0){
+                resultString += String.format("\nFace One feature: [0,1,128,510,511](%.3f,%.3f,%.3f,%.3f,%.3f)",
+                        embeddings01[0][0], embeddings01[0][1], embeddings01[0][128], embeddings01[0][510], embeddings01[0][511]);
+                resultString += "\nFR time: [" + frTime[0] + "] ticks\n";
+                frTime[0] = 0;
             }
-            if (frTime > 0) {
-                resultString += "FR time [" + frTime + "] ticks ";
+            if (frTime[1] > 0) {
+                resultString += String.format("\nFace Two feature: [0,1,128,510,511](%.3f,%.3f,%.3f,%.3f,%.3f)",
+                        embeddings02[0][0], embeddings02[0][1], embeddings02[0][128], embeddings02[0][510], embeddings02[0][511]);
+                resultString += "\nFR time: [" + frTime[1] + "] ticks\n";
+                frTime[1] = 0;
             }
 //            if (id != null) {
 //                resultString += "[" + id + "] ";
@@ -91,7 +105,9 @@ public interface Classifier {
     }
 
 
-    List<Recognition> recognizeImage(Bitmap bitmap);
+    List<Recognition> recognizeImage(Bitmap bitmap, String strId);
+
+    double getFRscore();
 
     void close();
 }

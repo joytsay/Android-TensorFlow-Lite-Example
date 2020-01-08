@@ -6,4 +6,5 @@
     <string name="load_img2">Load Face Two</string>
     <string name="fr_run">Run Face Recognition</string>
     <string name="fr_embeddings">FR Results:</string>
+    <string name="fr_score">FR Score:</string>
 </resources>

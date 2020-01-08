@@ -44,6 +44,9 @@ public class TensorFlowImageClassifier implements Classifier {
     private long startTime;
     private long endTime;
     private long frTime;
+    final ArrayList<Recognition> recognitions = new ArrayList<>();
+    private final float[][] embeddings01 = new float[1][512];
+    private final float[][] embeddings02 = new float[1][512];
 
     private TensorFlowImageClassifier() {
 
@@ -69,14 +72,21 @@ public class TensorFlowImageClassifier implements Classifier {
 
 
     @Override
-    public List<Recognition> recognizeImage(Bitmap bitmap) {
+    public List<Recognition> recognizeImage(Bitmap bitmap, String strID) {
         ByteBuffer byteBuffer = convertBitmapToByteBuffer(bitmap);
         float[][] embeddings = new float[1][512];
         startTime = new Date().getTime();
         interpreter.run(byteBuffer, embeddings);
         endTime = new Date().getTime();
         frTime = endTime - startTime;
-        return getResultEmbeddings(embeddings);
+        int nId = Integer.parseInt(strID);
+        if(nId==0) {
+            System.arraycopy(embeddings, 0, this.embeddings01, 0, this.embeddings01.length);
+        }else {
+            System.arraycopy(embeddings, 0, this.embeddings02, 0, this.embeddings02.length);
+        }
+        return getResultEmbeddings(embeddings, strID);
+
 
         //deprecated code
 //        if(quant){
@@ -89,6 +99,17 @@ public class TensorFlowImageClassifier implements Classifier {
 //            return getSortedResultFloat(result);
 //        }
 
+    }
+
+    @Override
+    public double getFRscore() {
+        double sum = 0;
+        for(int i=0;i<512;i++){
+            sum += Math.pow(embeddings01[0][i] - embeddings02[0][i],2);
+        }
+        double score = Math.abs(1.0 - Math.sqrt(sum))*100;
+        //if(score>100) score = 100;
+        return score;
     }
 
     @Override
@@ -149,23 +170,13 @@ public class TensorFlowImageClassifier implements Classifier {
     }
 
     @SuppressLint("DefaultLocale")
-    private List<Recognition> getResultEmbeddings(float[][] embeddingArray) {
-        final ArrayList<Recognition> recognitions = new ArrayList<>();
+    private List<Recognition> getResultEmbeddings(float[][] embeddingArray, String strId) {
         float confidence = 100;
-        Recognition result = new Recognition("0","unknown",confidence,quant,embeddingArray,frTime);
+        Recognition result = new Recognition(strId,"unknown",confidence,quant,embeddingArray,frTime);
         recognitions.add(result);
         return recognitions;
     }
 
-
-    private double getConfidenceScore(float[][] embeddingArray) {
-        double sum = 0;
-        for(int i=0;i<512;i++){
-            sum += Math.pow(embeddingArray[0][i] - embeddingArray[1][i],2);
-        }
-        double score = Math.sqrt(sum);
-        return score;
-    }
 
 //    @SuppressLint("DefaultLocale")
 //    private List<Recognition> getSortedResultByte(byte[][] labelProbArray) {

@@ -41,19 +41,20 @@ public class MainActivity extends AppCompatActivity {
     private Classifier classifier;
 
     private Executor executor = Executors.newSingleThreadExecutor();
-    private TextView textViewResult;
+    private TextView textViewResult, textViewScore;
     private Button btnDetectObject, btnToggleCamera, butttonFR1, buttonFR2, buttonDoFR;
     private ImageView imageViewResult;
     private CameraView cameraView;
-    private static int RESULT_LOAD_IMAGE = 1;
+    private static int RESULT_LOAD_IMAGE01 = 0;
+    private static int RESULT_LOAD_IMAGE02 = 1;
     private static final int MY_PERMISSION_READ_FILES = 100;
 //    private Bitmap imgBitmapFR01, imgBitmapFR02;
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-
-        if(requestCode == RESULT_LOAD_IMAGE && resultCode == RESULT_OK && null != data){
+        List<Classifier.Recognition> results;
+        if(requestCode == RESULT_LOAD_IMAGE01 && resultCode == RESULT_OK && null != data){
             Uri selectedImage = data.getData();
             String[] filePathColumn = { MediaStore.Images.Media.DATA };
             Cursor cursor = getContentResolver().query(selectedImage,
@@ -68,9 +69,29 @@ public class MainActivity extends AppCompatActivity {
             //Resize image and prepare tensor pixel normalized to [-1 ~ +1]
             Bitmap resizeBitmap = Bitmap.createScaledBitmap(imgBitmapFR01, INPUT_SIZE, INPUT_SIZE, false);
             //Inference Face Recognition
-            final List<Classifier.Recognition> results = classifier.recognizeImage(resizeBitmap);
+            results = classifier.recognizeImage(resizeBitmap, "0");
             textViewResult.setText(results.toString());
         }
+
+        if(requestCode == RESULT_LOAD_IMAGE02 && resultCode == RESULT_OK && null != data){
+            Uri selectedImage = data.getData();
+            String[] filePathColumn = { MediaStore.Images.Media.DATA };
+            Cursor cursor = getContentResolver().query(selectedImage,
+                    filePathColumn,null,null,null);
+            cursor.moveToFirst();
+            int columnIndex = cursor.getColumnIndex(filePathColumn[0]);
+            String picturePath = cursor.getString(columnIndex);
+            cursor.close();
+            ImageView imageView = (ImageView) findViewById(R.id.imageViewFace02);
+            Bitmap imgBitmapFR02 = BitmapFactory.decodeFile(picturePath);
+            imageView.setImageBitmap(imgBitmapFR02);
+            //Resize image and prepare tensor pixel normalized to [-1 ~ +1]
+            Bitmap resizeBitmap = Bitmap.createScaledBitmap(imgBitmapFR02, INPUT_SIZE, INPUT_SIZE, false);
+            //Inference Face Recognition
+            results = classifier.recognizeImage(resizeBitmap, "1");
+            textViewResult.setText(results.toString());
+        }
+
     }
 
     @Override
@@ -79,6 +100,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         textViewResult = findViewById(R.id.textViewFRResult);
         textViewResult.setMovementMethod(new ScrollingMovementMethod());
+        textViewScore = findViewById(R.id.textViewFRScore);
 
         //check files permission
         if( ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.READ_EXTERNAL_STORAGE)
@@ -97,7 +119,30 @@ public class MainActivity extends AppCompatActivity {
                 Intent i = new Intent(
                         Intent.ACTION_PICK,
                         MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-                startActivityForResult(i,RESULT_LOAD_IMAGE);
+                startActivityForResult(i,RESULT_LOAD_IMAGE01);
+            }
+        });
+
+        //load img for face 02
+        butttonFR1 = findViewById(R.id.btnLoadImg02);
+        butttonFR1.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent i = new Intent(
+                        Intent.ACTION_PICK,
+                        MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                startActivityForResult(i,RESULT_LOAD_IMAGE02);
+            }
+        });
+
+        //calculate Face similarity
+        buttonDoFR = findViewById(R.id.btnRunFR);
+        buttonDoFR.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                double FRscore = classifier.getFRscore();
+                String strFRscore= "FR Score: " + FRscore;
+                textViewScore.setText(strFRscore);
             }
         });
 
