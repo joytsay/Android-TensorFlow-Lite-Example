@@ -1,3 +1,24 @@
+# Face Recogniton Resnet-50 model ported to TensorFlow Lite for Android
+
+* This code makes use of tensorflow pb file converted to tflite:
+
+curl https://storage.googleapis.com/download.tensorflow.org/models/mobilenet_v1_0.50_128_frozen.tgz | tar xzv -C /tmp
+tflite_convert   --output_file=/tmp/foo.tflite   --graph_def_file=/tmp/mobilenet_v1_0.50_128/frozen_graph.pb   --input_arrays=input   --output_arrays=MobilenetV1/Predictions/Reshape_1
+
+tflite_convert --output_file=gvFR.tflite --graph_def_file=09-02_02-45.pb --input_arrays=input --output_arrays=embedding --input_shapes=10,224,224,3
+
+* Implement of Android NDK to load custom Face Recognition tflite models instead of the classifier example from Google TensorFlow example
+
+* Images below shows face extract 512-D features and similarity between Face One and Two.
+
+<p align="center">
+  <img src="https://github.com/joytsay/Android-TensorFlow-Lite-Example/blob/master/assets/Screenshot_1581501908.png?raw=true" width="250">
+  <img src="https://github.com/joytsay/Android-TensorFlow-Lite-Example/blob/master/assets/Screenshot_1581501919.png?raw=true" width="250">
+  <img src="https://github.com/joytsay/Android-TensorFlow-Lite-Example/blob/master/assets/Screenshot_1581501930.png?raw=true" width="250">
+</p>
+<br>
+<br>
+
 # Android TensorFlow Lite Machine Learning Example
 
 [![Mindorks](https://img.shields.io/badge/mindorks-opensource-blue.svg)](https://mindorks.com/open-source-projects)
