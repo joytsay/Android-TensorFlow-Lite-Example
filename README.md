@@ -14,10 +14,14 @@ tflite_convert --output_file=gvFR.tflite --graph_def_file=09-02_02-45.pb --input
 <p align="center">
   <img src="https://github.com/joytsay/Android-TensorFlow-Lite-Example/blob/master/assets/Screenshot_1581501908.png?raw=true" width="250">
   <img src="https://github.com/joytsay/Android-TensorFlow-Lite-Example/blob/master/assets/Screenshot_1581501919.png?raw=true" width="250">
-  <img src="https://github.com/joytsay/Android-TensorFlow-Lite-Example/blob/master/assets/Screenshot_1581501930.png?raw=true" width="250">
+  <img src="https://github.com/joytsay/Android-TensorFlow-Lite-Example/blob/master/assets/Screenshot_1581559541.png?raw=true?raw=true" width="250">
 </p>
 <br>
 <br>
+
+
+
+# The following are the original amitshekhariitbhu/Android-TensorFlow-Lite-Example code:
 
 # Android TensorFlow Lite Machine Learning Example
 
