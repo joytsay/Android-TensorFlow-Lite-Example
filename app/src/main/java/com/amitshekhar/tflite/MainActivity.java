@@ -1,7 +1,6 @@
 package com.amitshekhar.tflite;
 
 import android.Manifest;
-import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
@@ -10,7 +9,6 @@ import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
-import android.support.annotation.NonNull;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -19,12 +17,6 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
-
-import com.wonderkiln.camerakit.CameraKitError;
-import com.wonderkiln.camerakit.CameraKitEvent;
-import com.wonderkiln.camerakit.CameraKitEventListener;
-import com.wonderkiln.camerakit.CameraKitImage;
-import com.wonderkiln.camerakit.CameraKitVideo;
 import com.wonderkiln.camerakit.CameraView;
 
 import java.util.List;
@@ -32,6 +24,9 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 public class MainActivity extends AppCompatActivity {
+
+    //interface for face_x1_sdk
+    private gvFR face;
 
     private static final String MODEL_PATH = "gvFR.tflite";
     private static final boolean QUANT = true;
@@ -48,7 +43,6 @@ public class MainActivity extends AppCompatActivity {
     private static int RESULT_LOAD_IMAGE01 = 0;
     private static int RESULT_LOAD_IMAGE02 = 1;
     private static final int MY_PERMISSION_READ_FILES = 100;
-//    private Bitmap imgBitmapFR01, imgBitmapFR02;
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -91,8 +85,7 @@ public class MainActivity extends AppCompatActivity {
             results = classifier.recognizeImage(resizeBitmap, "1");
             textViewResult.setText(results.toString());
         }
-
-    }
+    }//onActivityResult
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -110,6 +103,17 @@ public class MainActivity extends AppCompatActivity {
 
         //create TensorFlow Lite model
         initTensorFlowAndLoadModel();
+
+        //interface for face_x1_sdk
+        gvFR face = new gvFR();
+        float[] feature = new float[512];
+        List<FaceInfo> tmpPos = null;
+        int[] res = new int[0];
+        Image image = null;
+        int ret = face.GetFeature( image, feature, tmpPos, res );
+        if( ret == gvFR.SUCCESS ){
+            //to do 成功获取到人脸特征值
+        }
 
         //load img for face 01
         butttonFR1 = findViewById(R.id.btnLoadImg01);
@@ -145,91 +149,7 @@ public class MainActivity extends AppCompatActivity {
                 textViewScore.setText(strFRscore);
             }
         });
-
-
-
-
-
-        //Deprecated code
-//        cameraView = findViewById(R.id.cameraView);
-//        imageViewResult = findViewById(R.id.imageViewResult);
-//        textViewResult = findViewById(R.id.textViewResult);
-//        textViewResult.setMovementMethod(new ScrollingMovementMethod());
-//
-//        btnToggleCamera = findViewById(R.id.btnToggleCamera);
-//        btnDetectObject = findViewById(R.id.btnDetectObject);
-//
-//        cameraView.addCameraKitListener(new CameraKitEventListener() {
-//            @Override
-//            public void onEvent(CameraKitEvent cameraKitEvent) {
-//
-//            }
-//
-//            @Override
-//            public void onError(CameraKitError cameraKitError) {
-//
-//            }
-//
-//            @Override
-//            public void onImage(CameraKitImage cameraKitImage) {
-//
-//                Bitmap bitmap = cameraKitImage.getBitmap();
-//
-//                bitmap = Bitmap.createScaledBitmap(bitmap, INPUT_SIZE, INPUT_SIZE, false);
-//
-//                imageViewResult.setImageBitmap(bitmap);
-//
-//                final List<Classifier.Recognition> results = classifier.recognizeImage(bitmap);
-//
-//                textViewResult.setText(results.toString());
-//
-//            }
-//
-//            @Override
-//            public void onVideo(CameraKitVideo cameraKitVideo) {
-//
-//            }
-//        });
-//
-//        btnToggleCamera.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//                cameraView.toggleFacing();
-//            }
-//        });
-//
-//        btnDetectObject.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//                cameraView.captureImage();
-//            }
-//        });
-//
-//        initTensorFlowAndLoadModel();
-//    }
-//
-//    @Override
-//    protected void onResume() {
-//        super.onResume();
-//        cameraView.start();
-//    }
-//
-//    @Override
-//    protected void onPause() {
-//        cameraView.stop();
-//        super.onPause();
-//    }
-//
-//    @Override
-//    protected void onDestroy() {
-//        super.onDestroy();
-//        executor.execute(new Runnable() {
-//            @Override
-//            public void run() {
-//                classifier.close();
-//            }
-//        });
-    }
+    }//onCreate
 
     private void initTensorFlowAndLoadModel() {
         executor.execute(new Runnable() {
@@ -243,21 +163,11 @@ public class MainActivity extends AppCompatActivity {
                             LABEL_PATH,
                             INPUT_SIZE,
                             QUANT);
-//                    makeButtonVisible();
                 } catch (final Exception e) {
                     throw new RuntimeException("Error initializing TensorFlow!", e);
                 }
             }
-        });
-    }
+        });//thread
+    }//initTensorFlowAndLoadModel
 
-    //Deprecated code
-//    private void makeButtonVisible() {
-//        runOnUiThread(new Runnable() {
-//            @Override
-//            public void run() {
-//                btnDetectObject.setVisibility(View.VISIBLE);
-//            }
-//        });
-//    }
 }
