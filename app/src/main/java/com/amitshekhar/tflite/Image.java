@@ -5,5 +5,8 @@ public class Image {
     public int width;
     public int height;
     Image() {
+        matAddrframe = 0;
+        width = 0;
+        height = 0;
     }
 }

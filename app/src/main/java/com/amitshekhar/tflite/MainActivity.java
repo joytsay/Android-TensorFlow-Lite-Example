@@ -8,16 +8,22 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.ContactsContract;
 import android.provider.MediaStore;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.text.method.ScrollingMovementMethod;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 import com.wonderkiln.camerakit.CameraView;
+
+import org.opencv.android.OpenCVLoader;
+import org.opencv.android.Utils;
+import org.opencv.core.Mat;
 
 import java.util.List;
 import java.util.concurrent.Executor;
@@ -36,13 +42,14 @@ public class MainActivity extends AppCompatActivity {
     private Classifier classifier;
 
     private Executor executor = Executors.newSingleThreadExecutor();
-    private TextView textViewResult, textViewScore;
-    private Button btnDetectObject, btnToggleCamera, butttonFR1, buttonFR2, buttonDoFR;
+    private TextView textViewResult, textViewScore, textViewSDK;
+    private Button btnDetectObject, btnToggleCamera, butttonFR1, buttonFR2, buttonDoFR, buttonDoSDK;
     private ImageView imageViewResult;
     private CameraView cameraView;
     private static int RESULT_LOAD_IMAGE01 = 0;
     private static int RESULT_LOAD_IMAGE02 = 1;
     private static final int MY_PERMISSION_READ_FILES = 100;
+    Bitmap imgBitmapFR01;
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -58,7 +65,7 @@ public class MainActivity extends AppCompatActivity {
             String picturePath = cursor.getString(columnIndex);
             cursor.close();
             ImageView imageView = (ImageView) findViewById(R.id.imageViewFace01);
-            Bitmap imgBitmapFR01 = BitmapFactory.decodeFile(picturePath);
+            imgBitmapFR01 = BitmapFactory.decodeFile(picturePath);
             imageView.setImageBitmap(imgBitmapFR01);
             //Resize image and prepare tensor pixel normalized to [-1 ~ +1]
             Bitmap resizeBitmap = Bitmap.createScaledBitmap(imgBitmapFR01, INPUT_SIZE, INPUT_SIZE, false);
@@ -94,6 +101,10 @@ public class MainActivity extends AppCompatActivity {
         textViewResult = findViewById(R.id.textViewFRResult);
         textViewResult.setMovementMethod(new ScrollingMovementMethod());
         textViewScore = findViewById(R.id.textViewFRScore);
+        textViewSDK = findViewById(R.id.textViewSDKResult);
+
+        //Loads and initializes OpenCV library (system.loadLibrary("opencv_java"))
+        OpenCVLoader.initDebug();
 
         //check files permission
         if( ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.READ_EXTERNAL_STORAGE)
@@ -103,17 +114,6 @@ public class MainActivity extends AppCompatActivity {
 
         //create TensorFlow Lite model
         initTensorFlowAndLoadModel();
-
-        //interface for face_x1_sdk
-        gvFR face = new gvFR();
-        float[] feature = new float[512];
-        List<FaceInfo> tmpPos = null;
-        int[] res = new int[0];
-        Image image = null;
-        int ret = face.GetFeature( image, feature, tmpPos, res );
-        if( ret == gvFR.SUCCESS ){
-            //to do 成功获取到人脸特征值
-        }
 
         //load img for face 01
         butttonFR1 = findViewById(R.id.btnLoadImg01);
@@ -147,6 +147,41 @@ public class MainActivity extends AppCompatActivity {
                 double FRscore = classifier.getFRscore();
                 String strFRscore= "FR Score: " + FRscore;
                 textViewScore.setText(strFRscore);
+            }
+        });
+
+
+        //run interface for face_x1_sdk
+        buttonDoSDK = findViewById(R.id.btnRunSDK);
+        buttonDoSDK.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+
+                //get imgBitmapFR01 to Mat
+                Mat mat = new Mat();
+                Utils.bitmapToMat(imgBitmapFR01, mat);
+
+                //convert OpenCV Mat to SDK Image
+                Image image = new Image();
+                image.matAddrframe = mat.getNativeObjAddr();
+                image.height = mat.height();
+                image.width = mat.width();
+
+                //new SDK face object
+                gvFR face = new gvFR();
+                float[] feature = new float[512];
+                List<FaceInfo> tmpPos = null;
+                int[] res = new int[0];
+
+                //extract feature via FR from image
+                int ret = face.GetFeature( image, feature, tmpPos, res );
+
+                //display SDK feature results
+                if( ret == gvFR.SUCCESS ){
+                    feature[0] = (float) 0.0;
+                    String strSDKscore= "SDK results: " + feature[0];
+                    textViewSDK.setText(strSDKscore);
+                }
             }
         });
     }//onCreate

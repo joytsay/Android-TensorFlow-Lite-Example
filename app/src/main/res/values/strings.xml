@@ -7,4 +7,6 @@
     <string name="fr_run">Run Face Recognition</string>
     <string name="fr_embeddings">FR Results:</string>
     <string name="fr_score">FR Score:</string>
+    <string name="fr_runSDK">Run Face One SDK</string>
+    <string name="SDK_embeddings">SDK Results:</string>
 </resources>

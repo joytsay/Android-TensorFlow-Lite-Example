@@ -40,8 +40,8 @@
 
 
     <LinearLayout
-        android:layout_width="330dp"
-        android:layout_height="347dp"
+        android:layout_width="376dp"
+        android:layout_height="409dp"
         android:layout_gravity="center|top"
         android:layout_marginTop="270dp"
         android:gravity="center_horizontal"
@@ -61,7 +61,7 @@
         <TextView
             android:id="@+id/textViewFRResult"
             android:layout_width="match_parent"
-            android:layout_height="160dp"
+            android:layout_height="80dp"
             android:layout_gravity="start"
             android:maxLines="15"
             android:text="@string/fr_embeddings"
@@ -75,6 +75,27 @@
             android:layout_gravity="start"
             android:maxLines="15"
             android:text="@string/fr_score"
+            android:textAllCaps="false"
+            android:textColor="@android:color/black" />
+
+        <Button
+            android:id="@+id/btnRunSDK"
+            android:layout_width="150dp"
+            android:layout_height="48dp"
+            android:layout_gravity="left"
+            android:layout_margin="@dimen/activity_horizontal_margin"
+            android:layout_marginBottom="50dp"
+            android:text="@string/fr_runSDK"
+            android:textAllCaps="false"
+            android:textColor="@android:color/black" />
+
+        <TextView
+            android:id="@+id/textViewSDKResult"
+            android:layout_width="match_parent"
+            android:layout_height="80dp"
+            android:layout_gravity="start"
+            android:maxLines="15"
+            android:text="@string/SDK_embeddings"
             android:textAllCaps="false"
             android:textColor="@android:color/black" />
 
