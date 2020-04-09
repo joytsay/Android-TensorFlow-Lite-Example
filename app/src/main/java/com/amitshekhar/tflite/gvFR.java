@@ -41,16 +41,14 @@ public class gvFR {
     private long endTime;
     private long frTime;
     final ArrayList<Classifier.Recognition> recognitions = new ArrayList<>();
-    private final float[][] embeddings01 = new float[1][512];
-    private final float[][] embeddings02 = new float[1][512];
 
 
-    boolean CreateFR(AssetManager assetManager, String modelPath) throws IOException {
+    static gvFR CreateFR(AssetManager assetManager, String modelPath) throws IOException {
         // load model
         gvFR model = new gvFR();
         model.interpreter = new Interpreter(model.loadModelFile( assetManager, modelPath), new Interpreter.Options());
-        model.inputSize = inputSize;
-        return true;
+        model.inputSize = INPUT_SIZE;
+        return model;
     }
 
     boolean SetInfo(int iCmd,int value){  //, void *pData
@@ -67,8 +65,12 @@ public class gvFR {
         float[][] embeddings = new float[1][512];
         startTime = new Date().getTime();
         interpreter.run(byteBuffer, embeddings);
+//        for(int i = 0; i < embeddings.length; i++){
+            System.arraycopy(embeddings[0], 0, feature, 0, embeddings[0].length);
+//        }
+
         endTime = new Date().getTime();
-        frTime = endTime - startTime;
+        res[0] = (int) (endTime - startTime);
         return 0;
     }
 

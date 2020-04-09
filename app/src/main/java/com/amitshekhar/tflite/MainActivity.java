@@ -8,13 +8,11 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
-import android.provider.ContactsContract;
 import android.provider.MediaStore;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.text.method.ScrollingMovementMethod;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -25,6 +23,8 @@ import org.opencv.android.OpenCVLoader;
 import org.opencv.android.Utils;
 import org.opencv.core.Mat;
 
+import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -33,6 +33,7 @@ public class MainActivity extends AppCompatActivity {
 
     //interface for face_x1_sdk
     private gvFR face;
+
 
     private static final String MODEL_PATH = "gvFR.tflite";
     private static final boolean QUANT = true;
@@ -163,23 +164,33 @@ public class MainActivity extends AppCompatActivity {
 
                 //convert OpenCV Mat to SDK Image
                 Image image = new Image();
-                image.matAddrframe = mat.getNativeObjAddr();
+                long getNativeObjAddr = mat.getNativeObjAddr();
+                long dataAddr = mat.dataAddr();
+                image.matAddrframe = getNativeObjAddr;
                 image.height = mat.height();
                 image.width = mat.width();
 
                 //new SDK face object
-                gvFR face = new gvFR();
                 float[] feature = new float[512];
+                Arrays.fill(feature, 0.0f);
                 List<FaceInfo> tmpPos = null;
-                int[] res = new int[0];
+                int[] res = new int[1];
+                Arrays.fill(res, 0);
+
+                //create FR model
+                try {
+                    face = gvFR.CreateFR(getAssets(),MODEL_PATH);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
 
                 //extract feature via FR from image
                 int ret = face.GetFeature( image, feature, tmpPos, res );
-
                 //display SDK feature results
                 if( ret == gvFR.SUCCESS ){
-                    feature[0] = (float) 0.0;
-                    String strSDKscore= "SDK results: " + feature[0];
+                    String strSDKscore= "[SDK results: feature[0,1,128,510,511] \n("
+                            + feature[0] + ","+ feature[1] + ","+ feature[128] + ","+ feature[510] + ","+ feature[511]
+                            + ")\n FR time: [" + res[0] + "] ticks]\n";
                     textViewSDK.setText(strSDKscore);
                 }
             }
