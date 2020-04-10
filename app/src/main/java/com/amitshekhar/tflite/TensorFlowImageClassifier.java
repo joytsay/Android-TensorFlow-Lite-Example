@@ -5,6 +5,8 @@ import android.content.res.AssetFileDescriptor;
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 
+import org.opencv.android.Utils;
+import org.opencv.core.Mat;
 import org.tensorflow.lite.Interpreter;
 
 import java.io.BufferedReader;
@@ -33,8 +35,8 @@ public class TensorFlowImageClassifier implements Classifier {
     private static final int PIXEL_SIZE = 3;
     private static final float THRESHOLD = 0.1f;
 
-    private static final int IMAGE_MEAN = 128;
-    private static final float IMAGE_STD = 128.0f;
+    private static final int IMAGE_MEAN = 256;
+    private static final float IMAGE_STD = 256.0f;
 
     private Interpreter interpreter;
     private int inputSize;
@@ -52,7 +54,6 @@ public class TensorFlowImageClassifier implements Classifier {
 
     static Classifier create(AssetManager assetManager,
                              String modelPath,
-                             String labelPath,
                              int inputSize,
                              boolean quant) throws IOException {
 
@@ -89,8 +90,8 @@ public class TensorFlowImageClassifier implements Classifier {
         for(int i=0;i<512;i++){
             sum += Math.pow(embeddings01[0][i] - embeddings02[0][i],2);
         }
-        double score = Math.abs(1.0 - Math.sqrt(sum))*100;
-        //if(score>100) score = 100;
+        double score = (1.00 - (Math.sqrt(sum)*0.50 - 0.20))*100;
+        if(score>100) score = 100;
         return score;
     }
 

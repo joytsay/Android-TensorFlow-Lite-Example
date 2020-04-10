@@ -37,13 +37,12 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String MODEL_PATH = "gvFR.tflite";
     private static final boolean QUANT = true;
-    private static final String LABEL_PATH = "labels.txt";
     private static final int INPUT_SIZE = 224;
 
     private Classifier classifier;
 
     private Executor executor = Executors.newSingleThreadExecutor();
-    private TextView textViewResult, textViewScore, textViewSDK;
+    private TextView textViewResult, textViewScore, textViewSDK01, textViewSDK02, textViewSDKScore;
     private Button btnDetectObject, btnToggleCamera, butttonFR1, buttonFR2, buttonDoFR, buttonDoSDK;
     private ImageView imageViewResult;
     private CameraView cameraView;
@@ -51,6 +50,7 @@ public class MainActivity extends AppCompatActivity {
     private static int RESULT_LOAD_IMAGE02 = 1;
     private static final int MY_PERMISSION_READ_FILES = 100;
     Bitmap imgBitmapFR01;
+    Bitmap imgBitmapFR02;
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -85,7 +85,7 @@ public class MainActivity extends AppCompatActivity {
             String picturePath = cursor.getString(columnIndex);
             cursor.close();
             ImageView imageView = (ImageView) findViewById(R.id.imageViewFace02);
-            Bitmap imgBitmapFR02 = BitmapFactory.decodeFile(picturePath);
+            imgBitmapFR02 = BitmapFactory.decodeFile(picturePath);
             imageView.setImageBitmap(imgBitmapFR02);
             //Resize image and prepare tensor pixel normalized to [-1 ~ +1]
             Bitmap resizeBitmap = Bitmap.createScaledBitmap(imgBitmapFR02, INPUT_SIZE, INPUT_SIZE, false);
@@ -102,7 +102,10 @@ public class MainActivity extends AppCompatActivity {
         textViewResult = findViewById(R.id.textViewFRResult);
         textViewResult.setMovementMethod(new ScrollingMovementMethod());
         textViewScore = findViewById(R.id.textViewFRScore);
-        textViewSDK = findViewById(R.id.textViewSDKResult);
+        textViewSDK01 = findViewById(R.id.textViewSDKResult01);
+        textViewSDK02 = findViewById(R.id.textViewSDKResult02);
+        textViewSDKScore = findViewById(R.id.textViewSDKScore);
+
 
         //Loads and initializes OpenCV library (system.loadLibrary("opencv_java"))
         OpenCVLoader.initDebug();
@@ -158,21 +161,32 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
 
-                //get imgBitmapFR01 to Mat
-                Mat mat = new Mat();
-                Utils.bitmapToMat(imgBitmapFR01, mat);
+                //get imgBitmapFR to Mat
+                Mat mat01 = new Mat();
+                Utils.bitmapToMat(imgBitmapFR01, mat01);
+
+                Mat mat02 = new Mat();
+                Utils.bitmapToMat(imgBitmapFR02, mat02);
 
                 //convert OpenCV Mat to SDK Image
-                Image image = new Image();
-                long getNativeObjAddr = mat.getNativeObjAddr();
-                long dataAddr = mat.dataAddr();
-                image.matAddrframe = getNativeObjAddr;
-                image.height = mat.height();
-                image.width = mat.width();
+                Image image01 = new Image();
+                long getNativeObjAddr01 = mat01.getNativeObjAddr();
+                image01.matAddrframe = getNativeObjAddr01;
+                image01.height = mat01.height();
+                image01.width = mat01.width();
+
+                Image image02 = new Image();
+                long getNativeObjAddr02 = mat02.getNativeObjAddr();
+                image02.matAddrframe = getNativeObjAddr02;
+                image02.height = mat02.height();
+                image02.width = mat02.width();
 
                 //new SDK face object
-                float[] feature = new float[512];
-                Arrays.fill(feature, 0.0f);
+                float[] feature01 = new float[512];
+                Arrays.fill(feature01, 0.0f);
+                float[] feature02 = new float[512];
+                Arrays.fill(feature02, 0.0f);
+
                 List<FaceInfo> tmpPos = null;
                 int[] res = new int[1];
                 Arrays.fill(res, 0);
@@ -185,13 +199,30 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 //extract feature via FR from image
-                int ret = face.GetFeature( image, feature, tmpPos, res );
-                //display SDK feature results
-                if( ret == gvFR.SUCCESS ){
-                    String strSDKscore= "[SDK results: feature[0,1,128,510,511] \n("
-                            + feature[0] + ","+ feature[1] + ","+ feature[128] + ","+ feature[510] + ","+ feature[511]
+                int retGetFeature01 = face.GetFeature( image01, feature01, tmpPos, res );
+                if( retGetFeature01 == gvFR.SUCCESS ){
+                    String strSDK= "[SDK results: feature01[0,1,128,510,511] \n("
+                            + feature01[0] + ","+ feature01[1] + ","+ feature01[128] + ","+ feature01[510] + ","+ feature01[511]
                             + ")\n FR time: [" + res[0] + "] ticks]\n";
-                    textViewSDK.setText(strSDKscore);
+                    textViewSDK01.setText(strSDK);
+                }
+
+                int retGetFeature02 = face.GetFeature( image02, feature02, tmpPos, res );
+                if( retGetFeature02 == gvFR.SUCCESS ){
+                    String strSDK = "[SDK results: feature02[0,1,128,510,511] \n("
+                            + feature02[0] + ","+ feature02[1] + ","+ feature02[128] + ","+ feature02[510] + ","+ feature02[511]
+                            + ")\n FR time: [" + res[0] + "] ticks]\n";
+                    textViewSDK02.setText(strSDK);
+                }
+
+
+                //compare features
+                float[] compareScore = new float[1];
+                Arrays.fill(compareScore, 0);
+                int retCompare = face.Compare(feature01,feature02,compareScore);
+                if( retCompare == gvFR.SUCCESS ){
+                    String strSDKscore= "SDK FR score: [" + compareScore[0] + "]\n";
+                    textViewSDKScore.setText(strSDKscore);
                 }
             }
         });
@@ -206,7 +237,6 @@ public class MainActivity extends AppCompatActivity {
                     classifier = TensorFlowImageClassifier.create(
                             getAssets(),
                             MODEL_PATH,
-                            LABEL_PATH,
                             INPUT_SIZE,
                             QUANT);
                 } catch (final Exception e) {

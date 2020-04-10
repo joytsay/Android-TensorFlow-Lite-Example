@@ -74,6 +74,16 @@ public class gvFR {
         return 0;
     }
 
+    int Compare( float[] origin, float[] chose, float[] score ){
+        double sum = 0;
+        for(int i=0;i<512;i++){
+            sum += Math.pow(origin[i] - chose[i],2);
+        }
+        score[0] = (float) ((1.00 - (Math.sqrt(sum)*0.50 - 0.20))*100);
+        if(score[0]>100) score[0] = 100;
+        return 0;
+    }
+
     boolean ReleaseFR() {
         // release model
         interpreter.close();

@@ -8,5 +8,7 @@
     <string name="fr_embeddings">FR Results:</string>
     <string name="fr_score">FR Score:</string>
     <string name="fr_runSDK">Run Face One SDK</string>
-    <string name="SDK_embeddings">SDK Results:</string>
+    <string name="SDK_embeddings01">SDK Results 01:</string>
+    <string name="SDK_embeddings02">SDK Results 02:</string>
+    <string name="SDK_score">SDK Score:</string>
 </resources>

@@ -41,7 +41,7 @@
 
     <LinearLayout
         android:layout_width="376dp"
-        android:layout_height="409dp"
+        android:layout_height="448dp"
         android:layout_gravity="center|top"
         android:layout_marginTop="270dp"
         android:gravity="center_horizontal"
@@ -61,9 +61,9 @@
         <TextView
             android:id="@+id/textViewFRResult"
             android:layout_width="match_parent"
-            android:layout_height="80dp"
+            android:layout_height="70dp"
             android:layout_gravity="start"
-            android:maxLines="15"
+            android:maxLines="20"
             android:text="@string/fr_embeddings"
             android:textAllCaps="false"
             android:textColor="@android:color/black" />
@@ -71,9 +71,9 @@
         <TextView
             android:id="@+id/textViewFRScore"
             android:layout_width="match_parent"
-            android:layout_height="32dp"
+            android:layout_height="30dp"
             android:layout_gravity="start"
-            android:maxLines="15"
+            android:maxLines="2"
             android:text="@string/fr_score"
             android:textAllCaps="false"
             android:textColor="@android:color/black" />
@@ -90,12 +90,32 @@
             android:textColor="@android:color/black" />
 
         <TextView
-            android:id="@+id/textViewSDKResult"
+            android:id="@+id/textViewSDKResult01"
             android:layout_width="match_parent"
-            android:layout_height="80dp"
+            android:layout_height="70dp"
             android:layout_gravity="start"
-            android:maxLines="15"
-            android:text="@string/SDK_embeddings"
+            android:maxLines="20"
+            android:text="@string/SDK_embeddings01"
+            android:textAllCaps="false"
+            android:textColor="@android:color/black" />
+
+        <TextView
+            android:id="@+id/textViewSDKResult02"
+            android:layout_width="match_parent"
+            android:layout_height="70dp"
+            android:layout_gravity="start"
+            android:maxLines="20"
+            android:text="@string/SDK_embeddings02"
+            android:textAllCaps="false"
+            android:textColor="@android:color/black" />
+
+        <TextView
+            android:id="@+id/textViewSDKScore"
+            android:layout_width="match_parent"
+            android:layout_height="30dp"
+            android:layout_gravity="start"
+            android:maxLines="2"
+            android:text="@string/SDK_score"
             android:textAllCaps="false"
             android:textColor="@android:color/black" />
 
