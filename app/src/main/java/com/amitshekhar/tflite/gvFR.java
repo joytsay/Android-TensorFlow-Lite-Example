@@ -32,8 +32,8 @@ public class gvFR {
     private static final int PIXEL_SIZE = 3;
     private static final float THRESHOLD = 0.1f;
     private static final int INPUT_SIZE = 224;
-    private static final int IMAGE_MEAN = 128;
-    private static final float IMAGE_STD = 128.0f;
+    private static final int IMAGE_MEAN = 256;
+    private static final float IMAGE_STD = 256.0f;
 
 
     private boolean quant;
@@ -60,15 +60,14 @@ public class gvFR {
         Mat ImageMat = new Mat(image.matAddrframe);
         Bitmap resultBitmap = Bitmap.createBitmap(ImageMat.cols(),  ImageMat.rows(),Bitmap.Config.ARGB_8888);;
         Utils.matToBitmap(ImageMat, resultBitmap);
+
+
         Bitmap resizeBitmap = Bitmap.createScaledBitmap(resultBitmap, INPUT_SIZE, INPUT_SIZE, false);
         ByteBuffer byteBuffer = convertBitmapToByteBuffer(resizeBitmap);
         float[][] embeddings = new float[1][512];
         startTime = new Date().getTime();
         interpreter.run(byteBuffer, embeddings);
-//        for(int i = 0; i < embeddings.length; i++){
-            System.arraycopy(embeddings[0], 0, feature, 0, embeddings[0].length);
-//        }
-
+        System.arraycopy(embeddings[0], 0, feature, 0, embeddings[0].length);
         endTime = new Date().getTime();
         res[0] = (int) (endTime - startTime);
         return 0;
