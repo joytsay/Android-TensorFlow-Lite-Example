@@ -13,6 +13,7 @@ import android.support.v4.content.ContextCompat;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.text.method.ScrollingMovementMethod;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -25,6 +26,7 @@ import org.opencv.core.Mat;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -199,30 +201,36 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 //extract feature via FR from image
-                int retGetFeature01 = face.GetFeature( image01, feature01, tmpPos, res );
+                int retGetFeature01 = face.GetFeature( mat01, feature01, tmpPos, res );
                 if( retGetFeature01 == gvFR.SUCCESS ){
                     String strSDK= "[SDK results: feature01[0,1,128,510,511] \n("
                             + feature01[0] + ","+ feature01[1] + ","+ feature01[128] + ","+ feature01[510] + ","+ feature01[511]
                             + ")\n FR time: [" + res[0] + "] ticks]\n";
                     textViewSDK01.setText(strSDK);
+                    Log.d("MainActivity","retGetFeature01" + strSDK);
                 }
 
-                int retGetFeature02 = face.GetFeature( image02, feature02, tmpPos, res );
+
+                int retGetFeature02 = face.GetFeature( mat02, feature02, tmpPos, res );
                 if( retGetFeature02 == gvFR.SUCCESS ){
                     String strSDK = "[SDK results: feature02[0,1,128,510,511] \n("
                             + feature02[0] + ","+ feature02[1] + ","+ feature02[128] + ","+ feature02[510] + ","+ feature02[511]
                             + ")\n FR time: [" + res[0] + "] ticks]\n";
                     textViewSDK02.setText(strSDK);
+                    Log.d("MainActivity","retGetFeature02" + strSDK);
                 }
 
+
+                long  startTime = new Date().getTime();
 
                 //compare features
                 float[] compareScore = new float[1];
                 Arrays.fill(compareScore, 0);
                 int retCompare = face.Compare(feature01,feature02,compareScore);
                 if( retCompare == gvFR.SUCCESS ){
-                    String strSDKscore= "SDK FR score: [" + compareScore[0] + "]\n";
+                    String strSDKscore= "SDK FR score: [" + compareScore[0] + "]\n" + "Compare time: " + (new Date().getTime() - startTime)+ "\n";
                     textViewSDKScore.setText(strSDKscore);
+                    Log.d("MainActivity","compareScore: " + strSDKscore);
                 }
             }
         });

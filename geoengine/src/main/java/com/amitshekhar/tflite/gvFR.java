@@ -32,8 +32,8 @@ public class gvFR {
     private static final int PIXEL_SIZE = 3;
     private static final float THRESHOLD = 0.1f;
     private static final int INPUT_SIZE = 224;
-    private static final int IMAGE_MEAN = 256;
-    private static final float IMAGE_STD = 256.0f;
+    private static final int IMAGE_MEAN = 128;
+    private static final float IMAGE_STD = 128.0f;
 
 
     private boolean quant;
@@ -43,7 +43,7 @@ public class gvFR {
     final ArrayList<Classifier.Recognition> recognitions = new ArrayList<>();
 
 
-    static gvFR CreateFR(AssetManager assetManager, String modelPath) throws IOException {
+    public static gvFR CreateFR(AssetManager assetManager, String modelPath) throws IOException {
         // load model
         gvFR model = new gvFR();
         model.interpreter = new Interpreter(model.loadModelFile( assetManager, modelPath), new Interpreter.Options());
@@ -56,24 +56,45 @@ public class gvFR {
         return false;
     }
 
-    int GetFeature(Image image, float[] feature, List faceinfos, int[] res) {
-        Mat ImageMat = new Mat(image.matAddrframe);
+    public int GetFeature(Mat ImageMat, float[] feature, List faceinfos, int[] res) {
         Bitmap resultBitmap = Bitmap.createBitmap(ImageMat.cols(),  ImageMat.rows(),Bitmap.Config.ARGB_8888);;
         Utils.matToBitmap(ImageMat, resultBitmap);
-
-
         Bitmap resizeBitmap = Bitmap.createScaledBitmap(resultBitmap, INPUT_SIZE, INPUT_SIZE, false);
         ByteBuffer byteBuffer = convertBitmapToByteBuffer(resizeBitmap);
         float[][] embeddings = new float[1][512];
         startTime = new Date().getTime();
         interpreter.run(byteBuffer, embeddings);
-        System.arraycopy(embeddings[0], 0, feature, 0, embeddings[0].length);
+//        for(int i = 0; i < embeddings.length; i++){
+
+//        }
+
         endTime = new Date().getTime();
         res[0] = (int) (endTime - startTime);
+
+        System.arraycopy(embeddings[0], 0, feature, 0, embeddings[0].length);
+
         return 0;
     }
 
-    int Compare( float[] origin, float[] chose, float[] score ){
+    public int GetFeatureByBitmap(Bitmap resultBitmap, float[] feature, List faceinfos, int[] res) {
+        Bitmap resizeBitmap = Bitmap.createScaledBitmap(resultBitmap, INPUT_SIZE, INPUT_SIZE, false);
+        ByteBuffer byteBuffer = convertBitmapToByteBuffer(resizeBitmap);
+        float[][] embeddings = new float[1][512];
+        startTime = new Date().getTime();
+        interpreter.run(byteBuffer, embeddings);
+//        for(int i = 0; i < embeddings.length; i++){
+
+//        }
+
+        endTime = new Date().getTime();
+        res[0] = (int) (endTime - startTime);
+
+        System.arraycopy(embeddings[0], 0, feature, 0, embeddings[0].length);
+
+        return 0;
+    }
+
+    public int Compare( float[] origin, float[] chose, float[] score ){
         double sum = 0;
         for(int i=0;i<512;i++){
             sum += Math.pow(origin[i] - chose[i],2);
@@ -83,7 +104,7 @@ public class gvFR {
         return 0;
     }
 
-    boolean ReleaseFR() {
+    public boolean ReleaseFR() {
         // release model
         interpreter.close();
         interpreter = null;
