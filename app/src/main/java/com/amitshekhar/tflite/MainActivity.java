@@ -20,6 +20,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import com.wonderkiln.camerakit.CameraView;
 
+
 import org.opencv.android.OpenCVLoader;
 import org.opencv.android.Utils;
 import org.opencv.core.Mat;
@@ -30,6 +31,12 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+
+import tw.com.geovision.geoengine.Classifier;
+import tw.com.geovision.geoengine.FaceInfo;
+import tw.com.geovision.geoengine.Image;
+import tw.com.geovision.geoengine.TensorFlowImageClassifier;
+import tw.com.geovision.geoengine.gvFR;
 
 public class MainActivity extends AppCompatActivity {
 

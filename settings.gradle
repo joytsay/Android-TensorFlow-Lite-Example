@@ -1,2 +1,2 @@
-include ':app', ':openCVLibrary331-release'
+include ':app', ':openCVLibrary331'
 include ':geoengine'
