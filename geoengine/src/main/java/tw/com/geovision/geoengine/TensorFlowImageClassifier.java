@@ -24,6 +24,9 @@ import java.util.List;
 import java.lang.Math;
 import java.util.PriorityQueue;
 
+import org.tensorflow.lite.Interpreter;
+import org.tensorflow.lite.gpu.GpuDelegate;
+
 /**
  * Created by amitshekhar on 17/03/18.
  */
@@ -58,6 +61,8 @@ public class TensorFlowImageClassifier implements Classifier {
                              boolean quant) throws IOException {
 
         TensorFlowImageClassifier classifier = new TensorFlowImageClassifier();
+        GpuDelegate delegate = new GpuDelegate();
+        Interpreter.Options options = (new Interpreter.Options()).addDelegate(delegate);
         classifier.interpreter = new Interpreter(classifier.loadModelFile(assetManager, modelPath), new Interpreter.Options());
         classifier.inputSize = inputSize;
         return classifier;

@@ -1,12 +1,15 @@
 package com.amitshekhar.tflite;
 
 import android.Manifest;
+import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Point;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.support.v4.content.ContextCompat;
@@ -18,22 +21,38 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import com.tzutalin.dlib.Constants;
+import com.tzutalin.dlib.FaceDet;
+import com.tzutalin.dlib.VisionDetRet;
 import com.wonderkiln.camerakit.CameraView;
 
 
 import org.opencv.android.OpenCVLoader;
 import org.opencv.android.Utils;
+import org.opencv.calib3d.Calib3d;
+import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfPoint2f;
+import org.opencv.core.Size;
+import org.opencv.imgproc.Imgproc;
+import org.opencv.utils.Converters;
 
+
+import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
+
 import tw.com.geovision.geoengine.Classifier;
 import tw.com.geovision.geoengine.FaceInfo;
+import tw.com.geovision.geoengine.FileUtils;
 import tw.com.geovision.geoengine.Image;
 import tw.com.geovision.geoengine.TensorFlowImageClassifier;
 import tw.com.geovision.geoengine.gvFR;
@@ -42,7 +61,7 @@ public class MainActivity extends AppCompatActivity {
 
     //interface for face_x1_sdk
     private gvFR face;
-
+    private static final int REQUEST_CODE_PERMISSION = 2;
 
     private static final String MODEL_PATH = "gvFR.tflite";
     private static final boolean QUANT = true;
@@ -60,6 +79,37 @@ public class MainActivity extends AppCompatActivity {
     private static final int MY_PERMISSION_READ_FILES = 100;
     Bitmap imgBitmapFR01;
     Bitmap imgBitmapFR02;
+    Bitmap imgBitmapAlign01;
+    Bitmap imgBitmapAlign02;
+    private FaceDet mFaceDet;
+
+    // Storage Permissions
+    private static String[] PERMISSIONS_REQ = {
+            Manifest.permission.READ_EXTERNAL_STORAGE,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE,
+            Manifest.permission.CAMERA
+    };
+    private static boolean verifyPermissions(Activity activity) {
+        // Check if we have write permission
+        int write_permission = ActivityCompat.checkSelfPermission(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        int read_persmission = ActivityCompat.checkSelfPermission(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        int camera_permission = ActivityCompat.checkSelfPermission(activity, Manifest.permission.CAMERA);
+
+        if (write_permission != PackageManager.PERMISSION_GRANTED ||
+                read_persmission != PackageManager.PERMISSION_GRANTED ||
+                camera_permission != PackageManager.PERMISSION_GRANTED) {
+            // We don't have permission so prompt the user
+            ActivityCompat.requestPermissions(
+                    activity,
+                    PERMISSIONS_REQ,
+                    REQUEST_CODE_PERMISSION
+            );
+            return false;
+        } else {
+            return true;
+        }
+    }
+
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -124,6 +174,12 @@ public class MainActivity extends AppCompatActivity {
             != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},MY_PERMISSION_READ_FILES);
         }
+        // For API 23+ you need to request the read/write permissions even if they are already in your manifest.
+        int currentapiVersion = android.os.Build.VERSION.SDK_INT;
+
+        if (currentapiVersion >= Build.VERSION_CODES.M) {
+            verifyPermissions(this);
+        }
 
         //create TensorFlow Lite model
         initTensorFlowAndLoadModel();
@@ -169,6 +225,39 @@ public class MainActivity extends AppCompatActivity {
         buttonDoSDK.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+
+                //copy landmark file to sdcard
+                final String targetPath = Constants.getFaceShapeModelPath();
+                if (!new File(targetPath).exists()) {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(MainActivity.this, "Copy landmark model to " + targetPath, Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                    FileUtils.copyFileFromRawToOthers(getApplicationContext(), R.raw.shape_predictor_5_face_landmarks, targetPath);
+                }
+                //do face alignment
+                FaceDet faceDet = new FaceDet(Constants.getFaceShapeModelPath());
+                List<VisionDetRet> results = faceDet.detect(imgBitmapFR01);
+                List<org.opencv.core.Point> landmarkPoints = new ArrayList<>();
+                for (final VisionDetRet ret : results) {
+                    String label = ret.getLabel();
+                    int rectLeft = ret.getLeft();
+                    int rectTop = ret.getTop();
+                    int rectRight = ret.getRight();
+                    int rectBottom = ret.getBottom();
+                    // Get 5 landmark points
+                    ArrayList<Point> landmarks = ret.getFaceLandmarks();
+                    for (Point point : landmarks) {
+                        int pointX = point.x;
+                        int pointY = point.y;
+                        org.opencv.core.Point landmark = new org.opencv.core.Point(pointX, pointY);
+                        landmarkPoints.add(landmark);
+                    }
+                }
+                imgBitmapAlign01 = warp(imgBitmapFR01, landmarkPoints);
+
 
                 //get imgBitmapFR to Mat
                 Mat mat01 = new Mat();
@@ -261,4 +350,40 @@ public class MainActivity extends AppCompatActivity {
         });//thread
     }//initTensorFlowAndLoadModel
 
+    public static Bitmap warp(Bitmap originPhoto, List<org.opencv.core.Point> landmarks) {
+        int resultWidth = 224;
+        int resultHeight = 224;
+
+        Mat inputMat = new Mat(originPhoto.getHeight(), originPhoto.getHeight(), CvType.CV_8UC1);
+        Utils.bitmapToMat(originPhoto, inputMat);
+        Mat outputMat = new Mat(resultWidth, resultHeight, CvType.CV_8UC1);
+
+        Mat startM = Converters.vector_Point2f_to_Mat(landmarks);
+
+        org.opencv.core.Point ocvPOut0 = new org.opencv.core.Point(173, 72);
+        org.opencv.core.Point ocvPOut1 = new org.opencv.core.Point(133, 67);
+        org.opencv.core.Point ocvPOut2 = new org.opencv.core.Point(48, 73);
+        org.opencv.core.Point ocvPOut3 = new org.opencv.core.Point(80, 67);
+        org.opencv.core.Point ocvPOut4 = new org.opencv.core.Point(111, 118);
+
+        List<org.opencv.core.Point> dest = new ArrayList<>();
+        dest.add(ocvPOut1);
+        dest.add(ocvPOut2);
+        dest.add(ocvPOut4);
+        dest.add(ocvPOut3);
+        dest.add(ocvPOut0);
+
+        Mat endM = Converters.vector_Point2f_to_Mat(dest);
+
+        MatOfPoint2f matOfPoint2fStart = new MatOfPoint2f(startM);
+        MatOfPoint2f matOfPoint2fEnd = new MatOfPoint2f(endM);
+        Mat perspectiveTransform = Calib3d.findHomography(matOfPoint2fStart, matOfPoint2fEnd);
+
+        Imgproc.warpPerspective(inputMat, outputMat, perspectiveTransform, new Size(resultWidth, resultHeight));
+
+        Bitmap output = Bitmap.createBitmap(resultWidth, resultHeight, Bitmap.Config.ARGB_8888);
+        Utils.matToBitmap(outputMat, output);
+
+        return output;
+    }
 }
