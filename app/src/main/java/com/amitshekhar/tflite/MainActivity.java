@@ -226,87 +226,110 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
 
-                //copy landmark file to sdcard
-                final String targetPath = Constants.getFaceShapeModelPath();
-                if (!new File(targetPath).exists()) {
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            Toast.makeText(MainActivity.this, "Copy landmark model to " + targetPath, Toast.LENGTH_SHORT).show();
+                executor.execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        //copy landmark file to sdcard
+                        final String targetPath = Constants.getFaceShapeModelPath();
+                        if (!new File(targetPath).exists()) {
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    Toast.makeText(MainActivity.this, "Copy landmark model to " + targetPath, Toast.LENGTH_SHORT).show();
+                                }
+                            });
+                            FileUtils.copyFileFromRawToOthers(getApplicationContext(), R.raw.shape_predictor_5_face_landmarks, targetPath);
                         }
-                    });
-                    FileUtils.copyFileFromRawToOthers(getApplicationContext(), R.raw.shape_predictor_5_face_landmarks, targetPath);
-                }
 
-                //get imgBitmapFR to Mat
-                Mat mat01 = new Mat();
-                Utils.bitmapToMat(imgBitmapFR01, mat01);
+                        //get imgBitmapFR to Mat
+                        Mat mat01 = new Mat();
+                        Utils.bitmapToMat(imgBitmapFR01, mat01);
 
-                Mat mat02 = new Mat();
-                Utils.bitmapToMat(imgBitmapFR02, mat02);
+                        Mat mat02 = new Mat();
+                        Utils.bitmapToMat(imgBitmapFR02, mat02);
 
-                //convert OpenCV Mat to SDK Image
-                Image image01 = new Image();
-                long getNativeObjAddr01 = mat01.getNativeObjAddr();
-                image01.matAddrframe = getNativeObjAddr01;
-                image01.height = mat01.height();
-                image01.width = mat01.width();
+                        //convert OpenCV Mat to SDK Image
+                        Image image01 = new Image();
+                        long getNativeObjAddr01 = mat01.getNativeObjAddr();
+                        image01.matAddrframe = getNativeObjAddr01;
+                        image01.height = mat01.height();
+                        image01.width = mat01.width();
 
-                Image image02 = new Image();
-                long getNativeObjAddr02 = mat02.getNativeObjAddr();
-                image02.matAddrframe = getNativeObjAddr02;
-                image02.height = mat02.height();
-                image02.width = mat02.width();
+                        Image image02 = new Image();
+                        long getNativeObjAddr02 = mat02.getNativeObjAddr();
+                        image02.matAddrframe = getNativeObjAddr02;
+                        image02.height = mat02.height();
+                        image02.width = mat02.width();
 
-                //new SDK face object
-                float[] feature01 = new float[512];
-                Arrays.fill(feature01, 0.0f);
-                float[] feature02 = new float[512];
-                Arrays.fill(feature02, 0.0f);
+                        //new SDK face object
+                        float[] feature01 = new float[512];
+                        Arrays.fill(feature01, 0.0f);
+                        float[] feature02 = new float[512];
+                        Arrays.fill(feature02, 0.0f);
 
-                List<FaceInfo> tmpPos = null;
-                int[] res = new int[1];
-                Arrays.fill(res, 0);
+                        List<FaceInfo> tmpPos = null;
+                        int[] res = new int[1];
+                        Arrays.fill(res, 0);
 
-                //create FR model
-                try {
-                    face = gvFR.CreateFR(getAssets(),MODEL_PATH);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                        //create FR model
+                        try {
+                            face = gvFR.CreateFR(getAssets(),MODEL_PATH);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
 
-                //extract feature via FR from image
-                int retGetFeature01 = face.GetFeature( mat01, feature01, tmpPos, res );
-                if( retGetFeature01 == gvFR.SUCCESS ){
-                    String strSDK= "[SDK results: feature01[0,1,128,510,511] \n("
-                            + feature01[0] + ","+ feature01[1] + ","+ feature01[128] + ","+ feature01[510] + ","+ feature01[511]
-                            + ")\n FR time: [" + res[0] + "] ticks]\n";
-                    textViewSDK01.setText(strSDK);
-                    Log.d("MainActivity","retGetFeature01" + strSDK);
-                }
-
-
-                int retGetFeature02 = face.GetFeature( mat02, feature02, tmpPos, res );
-                if( retGetFeature02 == gvFR.SUCCESS ){
-                    String strSDK = "[SDK results: feature02[0,1,128,510,511] \n("
-                            + feature02[0] + ","+ feature02[1] + ","+ feature02[128] + ","+ feature02[510] + ","+ feature02[511]
-                            + ")\n FR time: [" + res[0] + "] ticks]\n";
-                    textViewSDK02.setText(strSDK);
-                    Log.d("MainActivity","retGetFeature02" + strSDK);
-                }
+                        //extract feature via FR from image
+                        int retGetFeature01 = face.GetFeature( mat01, feature01, tmpPos, res );
+                        if( retGetFeature01 == gvFR.SUCCESS ){
+                            final String strSDK= "[SDK results: feature01[0,1,128,510,511] \n("
+                                    + feature01[0] + ","+ feature01[1] + ","+ feature01[128] + ","+ feature01[510] + ","+ feature01[511]
+                                    + ")\n FR time: [" + res[0] + "] ticks]\n";
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    textViewSDK01.setText(strSDK);
+                                }
+                            });
+                            Log.d("MainActivity","retGetFeature01" + strSDK);
+                        }
 
 
-                long  startTime = new Date().getTime();
+                        int retGetFeature02 = face.GetFeature( mat02, feature02, tmpPos, res );
+                        if( retGetFeature02 == gvFR.SUCCESS ){
+                            final String strSDK = "[SDK results: feature02[0,1,128,510,511] \n("
+                                    + feature02[0] + ","+ feature02[1] + ","+ feature02[128] + ","+ feature02[510] + ","+ feature02[511]
+                                    + ")\n FR time: [" + res[0] + "] ticks]\n";
 
-                //compare features
-                float[] compareScore = new float[1];
-                Arrays.fill(compareScore, 0);
-                int retCompare = face.Compare(feature01,feature02,compareScore);
-                if( retCompare == gvFR.SUCCESS ){
-                    String strSDKscore= "SDK FR score: [" + compareScore[0] + "]\n" + "Compare time: " + (new Date().getTime() - startTime)+ "\n";
-                    textViewSDKScore.setText(strSDKscore);
-                    Log.d("MainActivity","compareScore: " + strSDKscore);
-                }
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    textViewSDK02.setText(strSDK);
+                                }
+                            });
+
+                            Log.d("MainActivity","retGetFeature02" + strSDK);
+                        }
+
+
+                        long  startTime = new Date().getTime();
+
+                        //compare features
+                        float[] compareScore = new float[1];
+                        Arrays.fill(compareScore, 0);
+                        int retCompare = face.Compare(feature01,feature02,compareScore);
+                        if( retCompare == gvFR.SUCCESS ){
+                            final String strSDKscore1 = "SDK FR score: [" + compareScore[0] + "]\n" + "Compare time: " + (new Date().getTime() - startTime)+ "\n";
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    textViewSDKScore.setText(strSDKscore1);
+                                }
+                            });
+                            Log.d("MainActivity","compareScore: " + strSDKscore1);
+                        }
+                    }
+                });//thread
+
             }
         });
     }//onCreate
