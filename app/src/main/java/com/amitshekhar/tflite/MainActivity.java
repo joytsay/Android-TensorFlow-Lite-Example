@@ -237,37 +237,6 @@ public class MainActivity extends AppCompatActivity {
                     });
                     FileUtils.copyFileFromRawToOthers(getApplicationContext(), R.raw.shape_predictor_5_face_landmarks, targetPath);
                 }
-                //do face alignment
-                FaceDet faceDet = new FaceDet(Constants.getFaceShapeModelPath());
-                List<VisionDetRet> results = faceDet.detect(imgBitmapFR01);
-                List<org.opencv.core.Point> rectPoints = new ArrayList<>();
-                List<org.opencv.core.Point> landmarkPoints = new ArrayList<>();
-                for (final VisionDetRet ret : results) {
-                    String label = ret.getLabel();
-                    int rectLeft = ret.getLeft() < 0 ? 0 : ret.getLeft();
-                    int rectTop = ret.getTop() < 0 ? 0 : ret.getTop();
-                    int rectRight = ret.getRight() > imgBitmapFR01.getWidth() ? imgBitmapFR01.getWidth() : ret.getRight();
-                    int rectBottom = ret.getBottom() > imgBitmapFR01.getHeight() ? imgBitmapFR01.getHeight() : ret.getBottom();
-                    // Get 5 landmark points
-                    ArrayList<Point> landmarks = ret.getFaceLandmarks();
-
-                    for (Point point : landmarks) {
-                        int pointX = point.x;
-                        int pointY = point.y;
-                        org.opencv.core.Point landmark = new org.opencv.core.Point(pointX, pointY);
-                            landmarkPoints.add(landmark);
-                    }
-                    org.opencv.core.Point rect0 = new org.opencv.core.Point(rectLeft, rectTop);
-                    rectPoints.add(rect0);
-                    org.opencv.core.Point rect1 = new org.opencv.core.Point(rectRight, rectBottom);
-                    rectPoints.add(rect1);
-                    org.opencv.core.Point rect2 = new org.opencv.core.Point(rectRight, rectTop);
-                    rectPoints.add(rect2);
-                    org.opencv.core.Point rect3 = new org.opencv.core.Point(rectLeft, rectBottom);
-                    rectPoints.add(rect3);
-                }
-                imgBitmapAlign01 = warp(imgBitmapFR01, rectPoints, landmarkPoints);
-
 
                 //get imgBitmapFR to Mat
                 Mat mat01 = new Mat();
@@ -359,37 +328,4 @@ public class MainActivity extends AppCompatActivity {
             }
         });//thread
     }//initTensorFlowAndLoadModel
-
-    public static Bitmap warp(Bitmap originPhoto, List<org.opencv.core.Point> rect, List<org.opencv.core.Point> landmarks) {
-        int resultWidth = 224;
-        int resultHeight = 224;
-
-        //det rect quad homography transform
-        Mat inputMat = new Mat(originPhoto.getHeight(), originPhoto.getHeight(), CvType.CV_8UC1);
-        Utils.bitmapToMat(originPhoto, inputMat);
-        Mat outputMat = new Mat(resultWidth, resultHeight, CvType.CV_8UC1);
-        Mat rotateMat = new Mat(resultWidth, resultHeight, CvType.CV_8UC1);
-        Mat startM = Converters.vector_Point2f_to_Mat(rect);
-        org.opencv.core.Point ocvPOut0 = new org.opencv.core.Point(0, 0);
-        org.opencv.core.Point ocvPOut1 = new org.opencv.core.Point(224, 224);
-        org.opencv.core.Point ocvPOut2 = new org.opencv.core.Point(224, 0);
-        org.opencv.core.Point ocvPOut3 = new org.opencv.core.Point(0, 224);
-        List<org.opencv.core.Point> dest = new ArrayList<>();
-        dest.add(ocvPOut0);
-        dest.add(ocvPOut1);
-        dest.add(ocvPOut2);
-        dest.add(ocvPOut3);
-        Mat endM = Converters.vector_Point2f_to_Mat(dest);
-        MatOfPoint2f matOfPoint2fStart = new MatOfPoint2f(startM);
-        MatOfPoint2f matOfPoint2fEnd = new MatOfPoint2f(endM);
-        Mat perspectiveTransform = Calib3d.findHomography(matOfPoint2fStart, matOfPoint2fEnd);
-
-
-        Imgproc.warpPerspective(inputMat, outputMat, perspectiveTransform, new Size(resultWidth, resultHeight));
-
-        Bitmap output = Bitmap.createBitmap(resultWidth, resultHeight, Bitmap.Config.ARGB_8888);
-        Utils.matToBitmap(outputMat, output);
-
-        return output;
-    }
 }
