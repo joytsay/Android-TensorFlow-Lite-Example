@@ -281,7 +281,7 @@ public class MainActivity extends AppCompatActivity {
                         //extract feature via FR from image
                         int retGetFeature01 = face.GetFeature( mat01, feature01, tmpPos, res );
                         if( retGetFeature01 == gvFR.SUCCESS ){
-                            final String strSDK= "[SDK results: feature01[0,1,128,510,511] \n("
+                            final String strSDK= "[SDK results 01: feature01[0,1,128,510,511] \n("
                                     + feature01[0] + ","+ feature01[1] + ","+ feature01[128] + ","+ feature01[510] + ","+ feature01[511]
                                     + ")\n FR time: [" + res[0] + "] ticks]\n";
                             runOnUiThread(new Runnable() {
@@ -291,12 +291,20 @@ public class MainActivity extends AppCompatActivity {
                                 }
                             });
                             Log.d("MainActivity","retGetFeature01" + strSDK);
+                        }else{
+                            final String strSDK= "[SDK results 01: FD not found] \n";
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    textViewSDK01.setText(strSDK);
+                                }
+                            });
                         }
 
 
                         int retGetFeature02 = face.GetFeature( mat02, feature02, tmpPos, res );
                         if( retGetFeature02 == gvFR.SUCCESS ){
-                            final String strSDK = "[SDK results: feature02[0,1,128,510,511] \n("
+                            final String strSDK = "[SDK results 02: feature02[0,1,128,510,511] \n("
                                     + feature02[0] + ","+ feature02[1] + ","+ feature02[128] + ","+ feature02[510] + ","+ feature02[511]
                                     + ")\n FR time: [" + res[0] + "] ticks]\n";
 
@@ -308,6 +316,14 @@ public class MainActivity extends AppCompatActivity {
                             });
 
                             Log.d("MainActivity","retGetFeature02" + strSDK);
+                        }else{
+                            final String strSDK= "[SDK results 02: FD not found] \n";
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    textViewSDK02.setText(strSDK);
+                                }
+                            });
                         }
 
 

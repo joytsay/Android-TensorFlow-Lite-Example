@@ -74,6 +74,9 @@ public class gvFR {
         //do face alignment
         FaceDet faceDet = new FaceDet(Constants.getFaceShapeModelPath());
         List<VisionDetRet> results = faceDet.detect(resultBitmap);
+        if(results.size() == 0){
+            return ERROR_NOT_EXIST;
+        }
         List<org.opencv.core.Point> rectPoints = new ArrayList<>();
         List<org.opencv.core.Point> landmarkPoints = new ArrayList<>();
         for (final VisionDetRet ret : results) {
@@ -140,10 +143,18 @@ public class gvFR {
 
     public int Compare( float[] origin, float[] chose, float[] score ){
         double sum = 0;
+        boolean bfeatureHasZero = false;
         for(int i=0;i<512;i++){
             sum += Math.pow(origin[i] - chose[i],2);
+            if(origin[i] == 0 || chose[i] == 0){
+                bfeatureHasZero = true;
+            }
         }
-        score[0] = (float) ((1.00 - (Math.sqrt(sum)*0.50 - 0.20))*100);
+        if(!bfeatureHasZero) {
+            score[0] = (float) ((1.00 - (Math.sqrt(sum) * 0.50 - 0.20)) * 100);
+        }else {
+            score[0] = 0;
+        }
         if(score[0]>100) score[0] = 100;
         return 0;
     }
