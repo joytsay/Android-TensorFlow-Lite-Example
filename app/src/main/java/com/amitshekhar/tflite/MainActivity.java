@@ -8,6 +8,7 @@ import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Point;
+import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -267,19 +268,33 @@ public class MainActivity extends AppCompatActivity {
                         float[] feature02 = new float[512];
                         Arrays.fill(feature02, 0.0f);
 
-                        List<FaceInfo> tmpPos = null;
+
+                        //user defined Rect for tmpPos example code
+//                        FaceInfo tmpPos01 = new FaceInfo();
+//                        tmpPos01.mRect.bottom = mat01.height();
+//                        tmpPos01.mRect.left = 0;
+//                        tmpPos01.mRect.right = mat01.width();
+//                        tmpPos01.mRect.top = 0;
+
+                        //if need do FD give tmpPos null
+                        FaceInfo tmpPos01 = null;
+                        FaceInfo tmpPos02 = null;
+
+                        //FR result return error msg
                         int[] res = new int[1];
                         Arrays.fill(res, 0);
 
                         //create FR model
                         try {
-                            face = gvFR.CreateFR(getAssets(),MODEL_PATH);
+                            if(face == null) {
+                                face = gvFR.CreateFR(getAssets(), MODEL_PATH);
+                            }
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
 
                         //extract feature via FR from image
-                        int retGetFeature01 = face.GetFeature( mat01, feature01, tmpPos, res );
+                        int retGetFeature01 = face.GetFeature( mat01, feature01, tmpPos01, res );
                         if( retGetFeature01 == gvFR.SUCCESS ){
                             final String strSDK= "[SDK results 01: feature01[0,1,128,510,511] \n("
                                     + feature01[0] + ","+ feature01[1] + ","+ feature01[128] + ","+ feature01[510] + ","+ feature01[511]
@@ -302,7 +317,7 @@ public class MainActivity extends AppCompatActivity {
                         }
 
 
-                        int retGetFeature02 = face.GetFeature( mat02, feature02, tmpPos, res );
+                        int retGetFeature02 = face.GetFeature( mat02, feature02, tmpPos02, res );
                         if( retGetFeature02 == gvFR.SUCCESS ){
                             final String strSDK = "[SDK results 02: feature02[0,1,128,510,511] \n("
                                     + feature02[0] + ","+ feature02[1] + ","+ feature02[128] + ","+ feature02[510] + ","+ feature02[511]

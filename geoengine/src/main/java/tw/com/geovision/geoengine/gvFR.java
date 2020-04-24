@@ -51,7 +51,7 @@ public class gvFR {
     private long endTime;
     private long frTime;
     final ArrayList<Classifier.Recognition> recognitions = new ArrayList<>();
-
+    FaceDet faceDet = null;
 
     public static gvFR CreateFR(AssetManager assetManager, String modelPath) throws IOException {
         // load model
@@ -66,78 +66,77 @@ public class gvFR {
         return false;
     }
 
-    public int GetFeature(Mat ImageMat, float[] feature, List faceinfos, int[] res) {
+    public int GetFeature(Mat ImageMat, float[] feature, FaceInfo faceinfo, int[] res) {
         Bitmap resultBitmap = Bitmap.createBitmap(ImageMat.cols(),  ImageMat.rows(),Bitmap.Config.ARGB_8888);;
         Utils.matToBitmap(ImageMat, resultBitmap);
-
-
-        //do face alignment
-        FaceDet faceDet = new FaceDet(Constants.getFaceShapeModelPath());
-        List<VisionDetRet> results = faceDet.detect(resultBitmap);
-        if(results.size() == 0){
-            return ERROR_NOT_EXIST;
-        }
+        List<VisionDetRet> results = null;
         List<org.opencv.core.Point> rectPoints = new ArrayList<>();
         List<org.opencv.core.Point> landmarkPoints = new ArrayList<>();
-        for (final VisionDetRet ret : results) {
-            String label = ret.getLabel();
-            int rectLeft = ret.getLeft() < 0 ? 0 : ret.getLeft();
-            int rectTop = ret.getTop() < 0 ? 0 : ret.getTop();
-            int rectRight = ret.getRight() > resultBitmap.getWidth() ? resultBitmap.getWidth() : ret.getRight();
-            int rectBottom = ret.getBottom() > resultBitmap.getHeight() ? resultBitmap.getHeight() : ret.getBottom();
-            // Get 5 landmark points
-            ArrayList<Point> landmarks = ret.getFaceLandmarks();
 
-            for (Point point : landmarks) {
-                int pointX = point.x;
-                int pointY = point.y;
-                org.opencv.core.Point landmark = new org.opencv.core.Point(pointX, pointY);
-                landmarkPoints.add(landmark);
+        //do Face detection
+        if(faceinfo==null) {
+            if(faceDet==null) {
+                faceDet = new FaceDet(Constants.getFaceShapeModelPath());
             }
-            org.opencv.core.Point rect0 = new org.opencv.core.Point(rectLeft, rectTop);
+            results = faceDet.detect(resultBitmap);
+            for (final VisionDetRet ret : results) {
+                int rectLeft = ret.getLeft() < 0 ? 0 : ret.getLeft();
+                int rectTop = ret.getTop() < 0 ? 0 : ret.getTop();
+                int rectRight = ret.getRight() > resultBitmap.getWidth() ? resultBitmap.getWidth() : ret.getRight();
+                int rectBottom = ret.getBottom() > resultBitmap.getHeight() ? resultBitmap.getHeight() : ret.getBottom();
+                // get 5 landmark points
+                ArrayList<Point> landmarks = ret.getFaceLandmarks();
+                for (Point point : landmarks) {
+                    int pointX = point.x;
+                    int pointY = point.y;
+                    org.opencv.core.Point landmark = new org.opencv.core.Point(pointX, pointY);
+                    landmarkPoints.add(landmark);
+                }
+                org.opencv.core.Point rect0 = new org.opencv.core.Point(rectLeft, rectTop);
+                rectPoints.add(rect0);
+                org.opencv.core.Point rect1 = new org.opencv.core.Point(rectRight, rectBottom);
+                rectPoints.add(rect1);
+                org.opencv.core.Point rect2 = new org.opencv.core.Point(rectRight, rectTop);
+                rectPoints.add(rect2);
+                org.opencv.core.Point rect3 = new org.opencv.core.Point(rectLeft, rectBottom);
+                rectPoints.add(rect3);
+            }
+            if(results.size() == 0){ //no Face detected
+                return ERROR_FAILURE;
+            }
+        }else{ //given Rect by user
+            org.opencv.core.Point rect0 = new org.opencv.core.Point(faceinfo.mRect.left, faceinfo.mRect.top);
             rectPoints.add(rect0);
-            org.opencv.core.Point rect1 = new org.opencv.core.Point(rectRight, rectBottom);
+            org.opencv.core.Point rect1 = new org.opencv.core.Point(faceinfo.mRect.right, faceinfo.mRect.bottom);
             rectPoints.add(rect1);
-            org.opencv.core.Point rect2 = new org.opencv.core.Point(rectRight, rectTop);
+            org.opencv.core.Point rect2 = new org.opencv.core.Point(faceinfo.mRect.right, faceinfo.mRect.top);
             rectPoints.add(rect2);
-            org.opencv.core.Point rect3 = new org.opencv.core.Point(rectLeft, rectBottom);
+            org.opencv.core.Point rect3 = new org.opencv.core.Point(faceinfo.mRect.left, faceinfo.mRect.bottom);
             rectPoints.add(rect3);
         }
+
+        ////do face alignment
         resultBitmap = warp(resultBitmap, rectPoints, landmarkPoints);
-
-
         Bitmap resizeBitmap = Bitmap.createScaledBitmap(resultBitmap, INPUT_SIZE, INPUT_SIZE, false);
         ByteBuffer byteBuffer = convertBitmapToByteBuffer(resizeBitmap);
         float[][] embeddings = new float[1][512];
         startTime = new Date().getTime();
         interpreter.run(byteBuffer, embeddings);
-//        for(int i = 0; i < embeddings.length; i++){
-
-//        }
-
         endTime = new Date().getTime();
         res[0] = (int) (endTime - startTime);
-
         System.arraycopy(embeddings[0], 0, feature, 0, embeddings[0].length);
-
         return 0;
     }
 
-    public int GetFeatureByBitmap(Bitmap resultBitmap, float[] feature, List faceinfos, int[] res) {
+    public int GetFeatureByBitmap(Bitmap resultBitmap, float[] feature, List faceinfos, int[] res) { //deprecated
         Bitmap resizeBitmap = Bitmap.createScaledBitmap(resultBitmap, INPUT_SIZE, INPUT_SIZE, false);
         ByteBuffer byteBuffer = convertBitmapToByteBuffer(resizeBitmap);
         float[][] embeddings = new float[1][512];
         startTime = new Date().getTime();
         interpreter.run(byteBuffer, embeddings);
-//        for(int i = 0; i < embeddings.length; i++){
-
-//        }
-
         endTime = new Date().getTime();
         res[0] = (int) (endTime - startTime);
-
         System.arraycopy(embeddings[0], 0, feature, 0, embeddings[0].length);
-
         return 0;
     }
 
@@ -148,6 +147,7 @@ public class gvFR {
             sum += Math.pow(origin[i] - chose[i],2);
             if(origin[i] == 0 || chose[i] == 0){
                 bfeatureHasZero = true;
+                break;
             }
         }
         if(!bfeatureHasZero) {
