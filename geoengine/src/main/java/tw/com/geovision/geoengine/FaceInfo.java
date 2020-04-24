@@ -28,6 +28,13 @@ public class FaceInfo {
         this.mLandmark = new Landmark(landmark);
     }
 
+    public FaceInfo(Rect rect) {
+        this.mRect = new Rect(rect);
+        this.mAttr = new FaceAttribute();
+        this.mQuality = new FaceQuality();
+        this.mLandmark = new Landmark();
+    }
+
     public String toString() {
         return this.mRect.toString() + "," + this.mAttr.toString() + "," + this.mQuality.toString() + "," + this.mLandmark.toString();
     }
