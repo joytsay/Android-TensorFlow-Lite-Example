@@ -1,11 +1,19 @@
 # Face Recogniton Resnet-50 model ported to TensorFlow Lite for Android
 
-* This code makes use of tensorflow pb file converted to tflite:
+* This code makes use of tensorflow pb file converted to tflite
 
+* Tensorflow pb file converted to tflite:
+```
 curl https://storage.googleapis.com/download.tensorflow.org/models/mobilenet_v1_0.50_128_frozen.tgz | tar xzv -C /tmp
 tflite_convert   --output_file=/tmp/foo.tflite   --graph_def_file=/tmp/mobilenet_v1_0.50_128/frozen_graph.pb   --input_arrays=input   --output_arrays=MobilenetV1/Predictions/Reshape_1
-
-tflite_convert --output_file=gvFR.tflite --graph_def_file=09-02_02-45.pb --input_arrays=input --output_arrays=embedding --input_shapes=10,224,224,3
+```
+* Convert FR pb model to tflite: https://www.tensorflow.org/lite/convert/cmdline#usage
+```
+pip install tf-nightly
+```
+```
+tflite_convert --output_file=gvFR.tflite --graph_def_file=09-02_02-45.pb --input_arrays=input --output_arrays=embedding --input_shapes=10,224,224,3 --enable_v1_converter
+```
 
 * Implement of Android NDK to load custom Face Recognition tflite models instead of the classifier example from Google TensorFlow example
 
