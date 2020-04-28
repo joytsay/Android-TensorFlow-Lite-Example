@@ -207,8 +207,8 @@ public class gvFR {
     }
 
     public static Bitmap warp(Bitmap originPhoto, List<org.opencv.core.Point> rect, List<org.opencv.core.Point> landmarks) {
-        int resultWidth = 224;
-        int resultHeight = 224;
+        int resultWidth = INPUT_SIZE;
+        int resultHeight = INPUT_SIZE;
 
         //det rect quad homography transform
         Mat inputMat = new Mat(originPhoto.getHeight(), originPhoto.getHeight(), CvType.CV_8UC1);
@@ -217,9 +217,9 @@ public class gvFR {
         Mat rotateMat = new Mat(resultWidth, resultHeight, CvType.CV_8UC1);
         Mat startM = Converters.vector_Point2f_to_Mat(rect);
         org.opencv.core.Point ocvPOut0 = new org.opencv.core.Point(0, 0);
-        org.opencv.core.Point ocvPOut1 = new org.opencv.core.Point(224, 224);
-        org.opencv.core.Point ocvPOut2 = new org.opencv.core.Point(224, 0);
-        org.opencv.core.Point ocvPOut3 = new org.opencv.core.Point(0, 224);
+        org.opencv.core.Point ocvPOut1 = new org.opencv.core.Point(INPUT_SIZE, INPUT_SIZE);
+        org.opencv.core.Point ocvPOut2 = new org.opencv.core.Point(INPUT_SIZE, 0);
+        org.opencv.core.Point ocvPOut3 = new org.opencv.core.Point(0, INPUT_SIZE);
         List<org.opencv.core.Point> dest = new ArrayList<>();
         dest.add(ocvPOut0);
         dest.add(ocvPOut1);
