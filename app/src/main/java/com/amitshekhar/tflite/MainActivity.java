@@ -64,9 +64,9 @@ public class MainActivity extends AppCompatActivity {
     private gvFR face;
     private static final int REQUEST_CODE_PERMISSION = 2;
 
-    private static final String MODEL_PATH = "gvFR.tflite";
+    private static final String MODEL_PATH = "gvFR112.tflite";
     private static final boolean QUANT = true;
-    private static final int INPUT_SIZE = 224;
+    private static final int INPUT_SIZE = 112;
 
     private Classifier classifier;
 
