@@ -144,7 +144,9 @@ public class gvFR {
         double sum = 0;
         boolean bfeatureHasZero = false;
         for(int i=0;i<512;i++){
-            sum += Math.pow(origin[i] - chose[i],2);
+            double diffValue = origin[i] - chose[i];
+//            sum += Math.pow(origin[i] - chose[i],2);
+            sum += (diffValue * diffValue);
             if(origin[i] == 0 || chose[i] == 0){
                 bfeatureHasZero = true;
                 break;
