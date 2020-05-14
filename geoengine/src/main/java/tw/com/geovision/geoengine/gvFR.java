@@ -17,6 +17,7 @@ import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.utils.Converters;
 import org.tensorflow.lite.Interpreter;
+import org.tensorflow.lite.gpu.GpuDelegate;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -29,6 +30,7 @@ import java.util.Date;
 import java.util.List;
 
 public class gvFR {
+    private static GpuDelegate delegate;
     private Interpreter interpreter;
     private int inputSize;
     public static final int SUCCESS = 0; //执行接口返回成功
@@ -56,7 +58,11 @@ public class gvFR {
     public static gvFR CreateFR(AssetManager assetManager, String modelPath) throws IOException {
         // load model
         gvFR model = new gvFR();
-        model.interpreter = new Interpreter(model.loadModelFile( assetManager, modelPath), new Interpreter.Options());
+        delegate = new GpuDelegate();
+        Interpreter.Options options = (new Interpreter.Options()).addDelegate(delegate);
+//        options.setAllowFp16PrecisionForFp32(true);
+        model.interpreter = new Interpreter(model.loadModelFile( assetManager, modelPath), options);
+//        model.interpreter = new Interpreter(model.loadModelFile( assetManager, modelPath), new Interpreter.Options());
         model.inputSize = INPUT_SIZE;
         return model;
     }
@@ -165,6 +171,7 @@ public class gvFR {
         // release model
         interpreter.close();
         interpreter = null;
+        delegate.close();
         return true;
     }
 
