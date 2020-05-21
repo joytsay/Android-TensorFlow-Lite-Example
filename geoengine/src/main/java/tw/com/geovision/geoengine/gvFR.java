@@ -10,9 +10,11 @@ import com.tzutalin.dlib.VisionDetRet;
 
 import org.opencv.android.Utils;
 import org.opencv.calib3d.Calib3d;
+import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint2f;
+import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.utils.Converters;
@@ -28,6 +30,7 @@ import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.lang.Math;
 
 public class gvFR {
     private static GpuDelegate delegate;
@@ -73,14 +76,16 @@ public class gvFR {
     }
 
     public int GetFeature(Mat ImageMat, float[] feature, FaceInfo faceinfo, int[] res) {
-        Bitmap resultBitmap = Bitmap.createBitmap(ImageMat.cols(),  ImageMat.rows(),Bitmap.Config.ARGB_8888);;
+        Bitmap resultBitmap = Bitmap.createBitmap(ImageMat.cols(),  ImageMat.rows(),Bitmap.Config.RGB_565);;
         Utils.matToBitmap(ImageMat, resultBitmap);
         List<VisionDetRet> results = null;
         List<org.opencv.core.Point> rectPoints = new ArrayList<>();
+        List<org.opencv.core.Point> dliblandmarkPoints = new ArrayList<>();
         List<org.opencv.core.Point> landmarkPoints = new ArrayList<>();
 
         //do Face detection
         if(faceinfo==null) {
+            //FD and landmark via dlib
             if(faceDet==null) {
                 faceDet = new FaceDet(Constants.getFaceShapeModelPath());
             }
@@ -96,8 +101,12 @@ public class gvFR {
                     int pointX = point.x;
                     int pointY = point.y;
                     org.opencv.core.Point landmark = new org.opencv.core.Point(pointX, pointY);
-                    landmarkPoints.add(landmark);
+                    dliblandmarkPoints.add(landmark);
                 }
+                org.opencv.core.Point dlibLeftEyeCenter = new org.opencv.core.Point((int)((dliblandmarkPoints.get(2).x + dliblandmarkPoints.get(3).x)*0.5), (int)((dliblandmarkPoints.get(2).y + dliblandmarkPoints.get(3).y)*0.5));
+                org.opencv.core.Point dlibRightEyeCenter = new org.opencv.core.Point((int)((dliblandmarkPoints.get(0).x + dliblandmarkPoints.get(1).x)*0.5), (int)((dliblandmarkPoints.get(0).y + dliblandmarkPoints.get(1).y)*0.5));
+                landmarkPoints.add(dlibLeftEyeCenter);
+                landmarkPoints.add(dlibRightEyeCenter);
                 org.opencv.core.Point rect0 = new org.opencv.core.Point(rectLeft, rectTop);
                 rectPoints.add(rect0);
                 org.opencv.core.Point rect1 = new org.opencv.core.Point(rectRight, rectBottom);
@@ -119,10 +128,16 @@ public class gvFR {
             rectPoints.add(rect2);
             org.opencv.core.Point rect3 = new org.opencv.core.Point(faceinfo.mRect.left, faceinfo.mRect.bottom);
             rectPoints.add(rect3);
+            for (int i = 0; i < 5; i++) {
+                org.opencv.core.Point landmark = new org.opencv.core.Point((int) faceinfo.mLandmark.mX[i], (int) faceinfo.mLandmark.mY[i]);
+                landmarkPoints.add(landmark);
+            }
         }
 
         ////do face alignment
-        resultBitmap = warp(resultBitmap, rectPoints, landmarkPoints);
+        Mat resultMat = warp(ImageMat, rectPoints, landmarkPoints);
+        Bitmap output = Bitmap.createBitmap(INPUT_SIZE, INPUT_SIZE, Bitmap.Config.RGB_565);
+        Utils.matToBitmap(resultMat, output);
         Bitmap resizeBitmap = Bitmap.createScaledBitmap(resultBitmap, INPUT_SIZE, INPUT_SIZE, false);
         ByteBuffer byteBuffer = convertBitmapToByteBuffer(resizeBitmap);
         float[][] embeddings = new float[1][512];
@@ -215,36 +230,94 @@ public class gvFR {
         return byteBuffer;
     }
 
-    public static Bitmap warp(Bitmap originPhoto, List<org.opencv.core.Point> rect, List<org.opencv.core.Point> landmarks) {
+    public static Mat warp(Mat originPhoto, List<org.opencv.core.Point> rect, List<org.opencv.core.Point> landmarks) {
         int resultWidth = INPUT_SIZE;
         int resultHeight = INPUT_SIZE;
 
-        //det rect quad homography transform
-        Mat inputMat = new Mat(originPhoto.getHeight(), originPhoto.getHeight(), CvType.CV_8UC1);
-        Utils.bitmapToMat(originPhoto, inputMat);
-        Mat outputMat = new Mat(resultWidth, resultHeight, CvType.CV_8UC1);
-        Mat rotateMat = new Mat(resultWidth, resultHeight, CvType.CV_8UC1);
-        Mat startM = Converters.vector_Point2f_to_Mat(rect);
-        org.opencv.core.Point ocvPOut0 = new org.opencv.core.Point(0, 0);
-        org.opencv.core.Point ocvPOut1 = new org.opencv.core.Point(INPUT_SIZE, INPUT_SIZE);
-        org.opencv.core.Point ocvPOut2 = new org.opencv.core.Point(INPUT_SIZE, 0);
-        org.opencv.core.Point ocvPOut3 = new org.opencv.core.Point(0, INPUT_SIZE);
-        List<org.opencv.core.Point> dest = new ArrayList<>();
-        dest.add(ocvPOut0);
-        dest.add(ocvPOut1);
-        dest.add(ocvPOut2);
-        dest.add(ocvPOut3);
-        Mat endM = Converters.vector_Point2f_to_Mat(dest);
-        MatOfPoint2f matOfPoint2fStart = new MatOfPoint2f(startM);
-        MatOfPoint2f matOfPoint2fEnd = new MatOfPoint2f(endM);
-        Mat perspectiveTransform = Calib3d.findHomography(matOfPoint2fStart, matOfPoint2fEnd);
+        //face alignment by affine transformation via rotation and translation matrix
+        Mat outputMat = originPhoto.clone();
 
+        //leftEye rightEye nose leftMouth rightMouth
+        org.opencv.core.Point leftEye = new org.opencv.core.Point(landmarks.get(0).x, landmarks.get(0).y);
+        org.opencv.core.Point rightEye = new org.opencv.core.Point(landmarks.get(1).x, landmarks.get(1).y);
 
-        Imgproc.warpPerspective(inputMat, outputMat, perspectiveTransform, new Size(resultWidth, resultHeight));
+        //compute the angle between the eye centroids
+        int dY = (int) (rightEye.y - leftEye.y);
+        int dX = (int) (rightEye.x - leftEye.x);
+        double angle = Math.toDegrees(Math.atan2(dY,dX));
 
-        Bitmap output = Bitmap.createBitmap(resultWidth, resultHeight, Bitmap.Config.ARGB_8888);
-        Utils.matToBitmap(outputMat, output);
+        //compute the desired right eye x-coordinate based on the
+        // desired x-coordinate of the left eye
+        org.opencv.core.Point desiredLeftEye = new org.opencv.core.Point(0.25,0.25);
+        double desiredRightEyeX = 1.0 - desiredLeftEye.x;
+        int desiredFaceWidth = resultWidth;
+        int desiredFaceHeight = resultHeight;
 
-        return output;
+        //determine the scale of the new resulting image by taking
+        // the ratio of the distance between eyes in the *current*
+        // image to the ratio of distance between eyes in the
+        // *desired* image
+        double dist = Math.sqrt((Math.pow(dX, 2)) + ((Math.pow(dY, 2))));
+        double desiredDist = (desiredRightEyeX - desiredLeftEye.x);
+        desiredDist *= desiredFaceWidth;
+        double scale = desiredDist / dist;
+
+        //compute center (x, y)-coordinates (i.e., the median point)
+        // between the two eyes in the input image
+        org.opencv.core.Point eyesCenter =
+                new org.opencv.core.Point((leftEye.x + rightEye.x)*0.5,(leftEye.y + rightEye.y)*0.5);
+
+        //check input image rect and landmark
+//        Mat InputMat = originPhoto.clone();
+//        int thickness = 2;
+//        int lineType = 1;
+//        int shift = 0;
+//        Imgproc.circle(InputMat, leftEye, InputMat.cols()/100, new Scalar(0,0,255), thickness, lineType, shift);
+//        Imgproc.circle(InputMat, rightEye, InputMat.cols()/100, new Scalar(0,0,255), thickness, lineType, shift);
+//        Imgproc.circle(InputMat, eyesCenter, InputMat.cols()/100, new Scalar(0,255,0), thickness, lineType, shift);
+//        Imgproc.rectangle(InputMat, rect.get(0), rect.get(1), new Scalar(255,0,0), thickness, lineType, shift);
+//        Bitmap output = Bitmap.createBitmap(InputMat.cols(), InputMat.rows(), Bitmap.Config.RGB_565);
+//        Utils.matToBitmap(InputMat, output);
+
+        //grab the rotation matrix for rotating and scaling the face
+        Mat M = Imgproc.getRotationMatrix2D(eyesCenter,angle, scale);
+
+        //update the translation component of the matrix
+        double tX = desiredFaceWidth * 0.5;
+        double tY = desiredFaceHeight * desiredLeftEye.y;
+        //M[0, 2] += (tX - eyesCenter[0])
+        double[] buff = M.get(0, 2);
+        buff[0] += (tX - eyesCenter.x);
+        M.put(0, 2, buff[0]);
+        //M[1, 2] += (tY - eyesCenter[1])
+        buff = M.get(1, 2);
+        buff[0] += (tY - eyesCenter.y);
+        M.put(1, 2, buff[0]);
+
+        //apply the affine transformation
+        Imgproc.warpAffine(originPhoto, outputMat, M, new Size(resultWidth, resultHeight), Imgproc.INTER_CUBIC);
+
+        //check outputBitmap
+//        Bitmap outputBitmap = Bitmap.createBitmap(outputMat.cols(), outputMat.rows(), Bitmap.Config.RGB_565);
+//        Utils.matToBitmap(outputMat, outputBitmap);
+
+//deprecated Perspective transform
+//        Mat startM = Converters.vector_Point2f_to_Mat(rect);
+//        org.opencv.core.Point ocvPOut0 = new org.opencv.core.Point(0, 0);
+//        org.opencv.core.Point ocvPOut1 = new org.opencv.core.Point(INPUT_SIZE, INPUT_SIZE);
+//        org.opencv.core.Point ocvPOut2 = new org.opencv.core.Point(INPUT_SIZE, 0);
+//        org.opencv.core.Point ocvPOut3 = new org.opencv.core.Point(0, INPUT_SIZE);
+//        List<org.opencv.core.Point> dest = new ArrayList<>();
+//        dest.add(ocvPOut0);
+//        dest.add(ocvPOut1);
+//        dest.add(ocvPOut2);
+//        dest.add(ocvPOut3);
+//        Mat endM = Converters.vector_Point2f_to_Mat(dest);
+//        MatOfPoint2f matOfPoint2fStart = new MatOfPoint2f(startM);
+//        MatOfPoint2f matOfPoint2fEnd = new MatOfPoint2f(endM);
+//        Mat perspectiveTransform = Calib3d.findHomography(matOfPoint2fStart, matOfPoint2fEnd);
+//        Imgproc.warpPerspective(inputMat, outputMat, perspectiveTransform, new Size(resultWidth, resultHeight));
+
+        return outputMat;
     }
 }
