@@ -30,13 +30,17 @@ import java.util.Date;
 import java.util.List;
 import java.lang.Math;
 
-public class gvFR {
+public class GVFaceRecognition {
     private static final String PATH_FACE_GV_MODEL = "model";
     private static final String MODEL_NAME = "gvFR.tflite";
 
+    private static GVFaceRecognition gvFaceRecognitionInstance = null;
+
     private static GpuDelegate delegate;
     private Interpreter interpreter;
-    private int inputSize;
+    private final ArrayList<Classifier.Recognition> recognitions = new ArrayList<>();
+    private FaceDet faceDet = null;
+
     public static final int SUCCESS = 0; //执行接口返回成功
     public static final int ERROR_INVALID_PARAM = -1; //非法参数
     public static final int ERROR_TOO_MANY_REQUESTS = -2; //太多请求
@@ -51,34 +55,31 @@ public class gvFR {
     private static final int IMAGE_MEAN = 128;
     private static final float IMAGE_STD = 128.0f;
 
-
     private boolean quant;
     private long startTime;
     private long endTime;
     private long frTime;
-    final ArrayList<Classifier.Recognition> recognitions = new ArrayList<>();
-    private FaceDet faceDet = null;
+    private int inputSize;
 
-    public static gvFR initFR(final Context context) throws IOException {
-        gvFR model = new gvFR();
-        FileUtils.copyAssetFile(context, "model", context.getFilesDir().getAbsolutePath() + File.separator + PATH_FACE_GV_MODEL, false);
-        return model;
+    public static GVFaceRecognition getInstance() {
+        if (gvFaceRecognitionInstance == null) {
+            gvFaceRecognitionInstance = new GVFaceRecognition();
+        }
+        return gvFaceRecognitionInstance;
     }
 
-    public static gvFR CreateFR(gvFR model, final Context context) throws IOException {
+    public void initFR(final Context context) throws IOException {
+        FileUtils.copyAssetFile(context, "model", context.getFilesDir().getAbsolutePath() + File.separator + PATH_FACE_GV_MODEL, false);
+    }
+
+    public void CreateFR(final Context context) throws IOException {
         // load model
         delegate = new GpuDelegate();
         Interpreter.Options options = (new Interpreter.Options()).addDelegate(delegate);
 //        options.setAllowFp16PrecisionForFp32(true);
-        model.interpreter = new Interpreter(new File(context.getFilesDir().getAbsolutePath() + File.separator + PATH_FACE_GV_MODEL + File.separator + MODEL_NAME), options);
+        gvFaceRecognitionInstance.interpreter = new Interpreter(new File(context.getFilesDir().getAbsolutePath() + File.separator + PATH_FACE_GV_MODEL + File.separator + MODEL_NAME), options);
 //        model.interpreter = new Interpreter(model.loadModelFile( assetManager, modelPath), new Interpreter.Options());
-        model.inputSize = INPUT_SIZE;
-        return model;
-    }
-
-    boolean SetInfo(int iCmd,int value){  //, void *pData
-        // set info
-        return false;
+        gvFaceRecognitionInstance.inputSize = INPUT_SIZE;
     }
 
     public int GetFeature(Mat ImageMat, float[] feature, FaceInfo faceinfo, int[] res, boolean isSaveImage) {
@@ -239,7 +240,7 @@ public class gvFR {
         return byteBuffer;
     }
 
-    public static Mat warp(Mat originPhoto, List<org.opencv.core.Point> rect, List<org.opencv.core.Point> landmarks) {
+    private Mat warp(Mat originPhoto, List<org.opencv.core.Point> rect, List<org.opencv.core.Point> landmarks) {
         int resultWidth = INPUT_SIZE;
         int resultHeight = INPUT_SIZE;
 
