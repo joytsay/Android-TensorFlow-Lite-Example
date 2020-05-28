@@ -1,9 +1,13 @@
 package tw.com.geovision.geoengine;
+import android.app.Activity;
 import android.content.res.AssetFileDescriptor;
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.graphics.Point;
+import android.os.Environment;
+import android.widget.Toast;
 
+import com.snatik.storage.Storage;
 import com.tzutalin.dlib.Constants;
 import com.tzutalin.dlib.FaceDet;
 import com.tzutalin.dlib.VisionDetRet;
@@ -21,7 +25,9 @@ import org.opencv.utils.Converters;
 import org.tensorflow.lite.Interpreter;
 import org.tensorflow.lite.gpu.GpuDelegate;
 
+import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -57,6 +63,7 @@ public class gvFR {
     private long frTime;
     final ArrayList<Classifier.Recognition> recognitions = new ArrayList<>();
     FaceDet faceDet = null;
+
 
     public static gvFR CreateFR(AssetManager assetManager, String modelPath) throws IOException {
         // load model
@@ -138,8 +145,9 @@ public class gvFR {
         Mat resultMat = warp(ImageMat, rectPoints, landmarkPoints);
         Bitmap output = Bitmap.createBitmap(INPUT_SIZE, INPUT_SIZE, Bitmap.Config.RGB_565);
         Utils.matToBitmap(resultMat, output);
-        Bitmap resizeBitmap = Bitmap.createScaledBitmap(resultBitmap, INPUT_SIZE, INPUT_SIZE, false);
-        ByteBuffer byteBuffer = convertBitmapToByteBuffer(resizeBitmap);
+//        Bitmap resizeBitmap = Bitmap.createScaledBitmap(resultBitmap, INPUT_SIZE, INPUT_SIZE, false);
+        SaveImage(output);
+        ByteBuffer byteBuffer = convertBitmapToByteBuffer(output);
         float[][] embeddings = new float[1][512];
         startTime = new Date().getTime();
         interpreter.run(byteBuffer, embeddings);
@@ -320,4 +328,25 @@ public class gvFR {
 
         return outputMat;
     }
+
+    private void SaveImage(Bitmap finalBitmap) {
+        String root = Environment.getExternalStorageDirectory().toString();
+        File myDir = new File(root + "/cropped_face");
+        myDir.mkdirs();
+        Long tsLong = System.currentTimeMillis()/1000;
+        String n = tsLong.toString();
+        String fname = "Face-"+ n +".jpg";
+        File file = new File (myDir, fname);
+        if (file.exists ()) file.delete ();
+        try {
+            FileOutputStream out = new FileOutputStream(file);
+            finalBitmap.compress(Bitmap.CompressFormat.JPEG, 90, out);
+            out.flush();
+            out.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 }
+
+
