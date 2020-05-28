@@ -306,7 +306,7 @@ public class MainActivity extends AppCompatActivity {
                         Arrays.fill(res, 0);
 
                         //extract feature via FR from image
-                        int retGetFeature01 = face.GetFeature( mat01, feature01, tmpPos01, res );
+                        int retGetFeature01 = face.GetFeature( mat01, feature01, tmpPos01, res, true);
                         if( retGetFeature01 == gvFR.SUCCESS ){
                             final String strSDK= "[SDK results 01: feature01[0,1,128,510,511] \n("
                                     + feature01[0] + ","+ feature01[1] + ","+ feature01[128] + ","+ feature01[510] + ","+ feature01[511]
@@ -329,7 +329,7 @@ public class MainActivity extends AppCompatActivity {
                         }
 
 
-                        int retGetFeature02 = face.GetFeature( mat02, feature02, tmpPos02, res );
+                        int retGetFeature02 = face.GetFeature( mat02, feature02, tmpPos02, res, true);
                         if( retGetFeature02 == gvFR.SUCCESS ){
                             final String strSDK = "[SDK results 02: feature02[0,1,128,510,511] \n("
                                     + feature02[0] + ","+ feature02[1] + ","+ feature02[128] + ","+ feature02[510] + ","+ feature02[511]

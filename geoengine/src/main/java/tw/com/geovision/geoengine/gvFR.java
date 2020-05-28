@@ -81,7 +81,7 @@ public class gvFR {
         return false;
     }
 
-    public int GetFeature(Mat ImageMat, float[] feature, FaceInfo faceinfo, int[] res) {
+    public int GetFeature(Mat ImageMat, float[] feature, FaceInfo faceinfo, int[] res, boolean isSaveImage) {
         Bitmap resultBitmap = Bitmap.createBitmap(ImageMat.cols(),  ImageMat.rows(),Bitmap.Config.RGB_565);;
         Utils.matToBitmap(ImageMat, resultBitmap);
         List<VisionDetRet> results = null;
@@ -145,7 +145,9 @@ public class gvFR {
         Bitmap output = Bitmap.createBitmap(INPUT_SIZE, INPUT_SIZE, Bitmap.Config.RGB_565);
         Utils.matToBitmap(resultMat, output);
 //        Bitmap resizeBitmap = Bitmap.createScaledBitmap(resultBitmap, INPUT_SIZE, INPUT_SIZE, false);
-        SaveImage(output);
+        if (isSaveImage) {
+            SaveImage(output);
+        }
         ByteBuffer byteBuffer = convertBitmapToByteBuffer(output);
         float[][] embeddings = new float[1][512];
         startTime = new Date().getTime();
