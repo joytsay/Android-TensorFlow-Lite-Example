@@ -1,27 +1,19 @@
 package tw.com.geovision.geoengine;
-import android.app.Activity;
+import android.content.Context;
 import android.content.res.AssetFileDescriptor;
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.graphics.Point;
 import android.os.Environment;
-import android.widget.Toast;
 
-import com.snatik.storage.Storage;
 import com.tzutalin.dlib.Constants;
 import com.tzutalin.dlib.FaceDet;
 import com.tzutalin.dlib.VisionDetRet;
 
 import org.opencv.android.Utils;
-import org.opencv.calib3d.Calib3d;
-import org.opencv.core.Core;
-import org.opencv.core.CvType;
 import org.opencv.core.Mat;
-import org.opencv.core.MatOfPoint2f;
-import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
-import org.opencv.utils.Converters;
 import org.tensorflow.lite.Interpreter;
 import org.tensorflow.lite.gpu.GpuDelegate;
 
@@ -39,6 +31,9 @@ import java.util.List;
 import java.lang.Math;
 
 public class gvFR {
+    private static final String PATH_FACE_GV_MODEL = "model";
+    private static final String MODEL_NAME = "gvFR.tflite";
+
     private static GpuDelegate delegate;
     private Interpreter interpreter;
     private int inputSize;
@@ -62,16 +57,20 @@ public class gvFR {
     private long endTime;
     private long frTime;
     final ArrayList<Classifier.Recognition> recognitions = new ArrayList<>();
-    FaceDet faceDet = null;
+    private FaceDet faceDet = null;
 
-
-    public static gvFR CreateFR(AssetManager assetManager, String modelPath) throws IOException {
-        // load model
+    public static gvFR initFR(final Context context) throws IOException {
         gvFR model = new gvFR();
+        FileUtils.copyAssetFile(context, "model", context.getFilesDir().getAbsolutePath() + File.separator + PATH_FACE_GV_MODEL, false);
+        return model;
+    }
+
+    public static gvFR CreateFR(gvFR model, final Context context) throws IOException {
+        // load model
         delegate = new GpuDelegate();
         Interpreter.Options options = (new Interpreter.Options()).addDelegate(delegate);
 //        options.setAllowFp16PrecisionForFp32(true);
-        model.interpreter = new Interpreter(model.loadModelFile( assetManager, modelPath), options);
+        model.interpreter = new Interpreter(new File(context.getFilesDir().getAbsolutePath() + File.separator + PATH_FACE_GV_MODEL + File.separator + MODEL_NAME), options);
 //        model.interpreter = new Interpreter(model.loadModelFile( assetManager, modelPath), new Interpreter.Options());
         model.inputSize = INPUT_SIZE;
         return model;
@@ -347,6 +346,7 @@ public class gvFR {
             e.printStackTrace();
         }
     }
+
 }
 
 

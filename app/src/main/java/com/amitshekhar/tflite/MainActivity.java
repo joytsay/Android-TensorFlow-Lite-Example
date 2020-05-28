@@ -64,7 +64,7 @@ public class MainActivity extends AppCompatActivity {
     private gvFR face;
     private static final int REQUEST_CODE_PERMISSION = 2;
 
-    private static final String MODEL_PATH = "gvFR112.tflite";
+    private static final String MODEL_PATH = "gvFR.tflite";
     private static final boolean QUANT = true;
     private static final int INPUT_SIZE = 112;
 
@@ -185,6 +185,19 @@ public class MainActivity extends AppCompatActivity {
         //create TensorFlow Lite model
         initTensorFlowAndLoadModel();
 
+        if(face == null) {
+            executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        face = gvFR.initFR(MainActivity.this);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            });//thread
+        }
+
         //load img for face 01
         butttonFR1 = findViewById(R.id.btnLoadImg01);
         butttonFR1.setOnClickListener(new View.OnClickListener() {
@@ -230,6 +243,14 @@ public class MainActivity extends AppCompatActivity {
                 executor.execute(new Runnable() {
                     @Override
                     public void run() {
+
+                        //create FR model
+                        try {
+                            gvFR.CreateFR(face, MainActivity.this);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+
                         //copy landmark file to sdcard
                         final String targetPath = Constants.getFaceShapeModelPath();
                         if (!new File(targetPath).exists()) {
@@ -283,15 +304,6 @@ public class MainActivity extends AppCompatActivity {
                         //FR result return error msg
                         int[] res = new int[1];
                         Arrays.fill(res, 0);
-
-                        //create FR model
-                        try {
-                            if(face == null) {
-                                face = gvFR.CreateFR(getAssets(), MODEL_PATH);
-                            }
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
 
                         //extract feature via FR from image
                         int retGetFeature01 = face.GetFeature( mat01, feature01, tmpPos01, res );
