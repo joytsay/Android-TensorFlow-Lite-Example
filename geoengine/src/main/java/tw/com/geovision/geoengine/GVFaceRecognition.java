@@ -135,7 +135,7 @@ public class GVFaceRecognition {
                 resultMat = warp(ImageMat, rectPoints, landmarkPoints);
                 long warpFRendTime = new Date().getTime();
                 int runTime = (int) (warpFRendTime - warpFRstartTime);
-                Log.d("gvFR", "Alignment runTime: " + runTime + " ticks\n");
+                Log.d("gvFR", "Alignment and crop face runTime: " + runTime + " ticks\n");
             }
             if(results.size() == 0){ //no Face detected
                 return ERROR_FAILURE;
@@ -151,7 +151,8 @@ public class GVFaceRecognition {
             rectPoints.add(rect2);
             org.opencv.core.Point rect3 = new org.opencv.core.Point(faceinfo.mRect.left, faceinfo.mRect.bottom);
             rectPoints.add(rect3);
-            Log.d("gvFR", "faceinfo FD_lrtb(" + faceinfo.mRect.left + "," + faceinfo.mRect.right + "," +faceinfo.mRect.top + "," + faceinfo.mRect.bottom + ")\n");
+            Log.d("gvFR", "faceinfo FD_[l,r,t,b](" + faceinfo.mRect.left + "," + faceinfo.mRect.right + "," +faceinfo.mRect.top + "," + faceinfo.mRect.bottom +
+                    "[w,h](" + (faceinfo.mRect.right - faceinfo.mRect.left) + ","  + (faceinfo.mRect.bottom - faceinfo.mRect.top) +")\n");
 
             //deprecated face_x1_sdk no landmark
 //            for (int i = 0; i < 5; i++) {
@@ -172,16 +173,18 @@ public class GVFaceRecognition {
 
             int cropbottom = faceinfo.mRect.bottom + padding;
             if( cropbottom > resultBitmap.getHeight()) { cropbottom = resultBitmap.getHeight(); }
-            Log.d("gvFR", "padding FD_lrtb(" + cropleft + "," + cropright + "," +croptop + "," + cropbottom+ ")\n");
+            Log.d("gvFR", "padding FD_[l,r,t,b](" + cropleft + "," + cropright + "," +croptop + "," + cropbottom +
+                    "[w,h](" + (cropright - cropleft) + ","  + (cropbottom - croptop) +")\n");
 
             org.opencv.core.Rect roi = new  org.opencv.core.Rect(cropleft,croptop,cropright-cropleft,cropbottom-croptop);
             Mat croppedMat = ImageMat.submat(roi);
 
-//            Mat resizeimage = new Mat();
-//            Size sz = new Size(250,250);
-//            Imgproc.resize( croppedMat, resizeimage, sz );
+            int resizeLength = 224;
+            if(croppedMat.cols() > resizeLength || croppedMat.rows() > resizeLength){
+                Imgproc.resize( croppedMat, croppedMat, new Size(resizeLength,resizeLength));
+            }
 
-            Bitmap croppedBitmap = Bitmap.createBitmap(croppedMat.cols(),  croppedMat.rows(),Bitmap.Config.RGB_565);;
+            Bitmap croppedBitmap = Bitmap.createBitmap(croppedMat.cols(),  croppedMat.rows(),Bitmap.Config.RGB_565);
             Utils.matToBitmap(croppedMat, croppedBitmap);
 //            SaveImage(croppedBitmap);
 
@@ -260,6 +263,7 @@ public class GVFaceRecognition {
     }
 
     public int Compare( float[] origin, float[] chose, float[] score ){
+        long CompareStartTime = new Date().getTime();
         double sum = 0;
         boolean bfeatureHasZero = false;
         for(int i=0;i<512;i++){
@@ -277,6 +281,10 @@ public class GVFaceRecognition {
             score[0] = 0;
         }
         if(score[0]>100) score[0] = 100;
+        long CompareEndTime = new Date().getTime();
+        int runTime = (int) (CompareEndTime - CompareStartTime);
+        Log.d("gvFR", "FR confidence ("
+                + score[0] + ") runTime(" +runTime + ") ticks\n");
         return 0;
     }
 
