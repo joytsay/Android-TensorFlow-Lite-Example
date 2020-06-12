@@ -20,6 +20,7 @@ import android.content.Context;
 import android.support.annotation.NonNull;
 import android.support.annotation.RawRes;
 
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -53,5 +54,61 @@ public class FileUtils {
                 e.printStackTrace();
             }
         }
+    }
+
+    /**
+     * 将asset中文件copy到系统中
+     * @param context
+     * @param assetPath
+     * @param saveFilePath
+     * @param need_overwrite 文件存在时是否覆盖写入
+     */
+    public static boolean copyAssetFile(Context context, String assetPath, String saveFilePath, boolean need_overwrite) {
+        try {
+            String fileNames[] = context.getAssets().list(assetPath);//获取assets目录下的所有文件及目录名
+            if (fileNames.length > 0) {//如果是目录
+                File file = new File(saveFilePath);
+                file.mkdirs();//如果文件夹不存在，则递归
+                for (String fileName : fileNames) {
+                    copyAssetFile(context, assetPath + "/" + fileName, saveFilePath + "/" + fileName,need_overwrite);
+                }
+            } else {//如果是文件
+                File configFile = new File(saveFilePath);
+                if (need_overwrite){
+                    saveFile(context, assetPath, configFile);
+                }else {//如果copy为false，但是系统中又没有configFile文件，则强制copy
+                    if (!configFile.exists()){
+                        saveFile(context, assetPath, configFile);
+                    }
+                }
+
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            //如果捕捉到错误则通知UI线程
+            return false;
+        }
+        return true;
+    }
+
+
+    /**
+     * 将assets中文件copy到系统中
+     * @param context
+     * @param assetPath
+     * @param saveFile
+     * @throws
+     */
+    private static void saveFile(Context context, String assetPath, File saveFile) throws Exception {
+        InputStream is = context.getAssets().open(assetPath);
+        FileOutputStream fos = new FileOutputStream(saveFile);
+        byte[] buffer = new byte[1024];
+        int byteCount = 0;
+        while ((byteCount = is.read(buffer)) != -1) {//循环从输入流读取 buffer字节
+            fos.write(buffer, 0, byteCount);//将读取的输入流写入到输出流
+        }
+        fos.flush();//刷新缓冲区
+        is.close();
+        fos.close();
     }
 }

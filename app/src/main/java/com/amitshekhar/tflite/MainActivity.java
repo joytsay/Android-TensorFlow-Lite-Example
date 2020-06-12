@@ -7,8 +7,6 @@ import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Point;
-import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -26,24 +24,16 @@ import android.widget.Toast;
 
 import com.tzutalin.dlib.Constants;
 import com.tzutalin.dlib.FaceDet;
-import com.tzutalin.dlib.VisionDetRet;
 import com.wonderkiln.camerakit.CameraView;
 
 
 import org.opencv.android.OpenCVLoader;
 import org.opencv.android.Utils;
-import org.opencv.calib3d.Calib3d;
-import org.opencv.core.CvType;
 import org.opencv.core.Mat;
-import org.opencv.core.MatOfPoint2f;
-import org.opencv.core.Size;
-import org.opencv.imgproc.Imgproc;
-import org.opencv.utils.Converters;
 
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -56,17 +46,16 @@ import tw.com.geovision.geoengine.FaceInfo;
 import tw.com.geovision.geoengine.FileUtils;
 import tw.com.geovision.geoengine.Image;
 import tw.com.geovision.geoengine.TensorFlowImageClassifier;
-import tw.com.geovision.geoengine.gvFR;
+import tw.com.geovision.geoengine.GVFaceRecognition;
 
 public class MainActivity extends AppCompatActivity {
 
     //interface for face_x1_sdk
-    private gvFR face;
     private static final int REQUEST_CODE_PERMISSION = 2;
 
     private static final String MODEL_PATH = "gvFR.tflite";
     private static final boolean QUANT = true;
-    private static final int INPUT_SIZE = 224;
+    private static final int INPUT_SIZE = 112;
 
     private Classifier classifier;
 
@@ -185,6 +174,18 @@ public class MainActivity extends AppCompatActivity {
         //create TensorFlow Lite model
         initTensorFlowAndLoadModel();
 
+        executor.execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    GVFaceRecognition.getInstance().initFR(MainActivity.this);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        });//thread
+
+
         //load img for face 01
         butttonFR1 = findViewById(R.id.btnLoadImg01);
         butttonFR1.setOnClickListener(new View.OnClickListener() {
@@ -230,6 +231,14 @@ public class MainActivity extends AppCompatActivity {
                 executor.execute(new Runnable() {
                     @Override
                     public void run() {
+
+                        //create FR model
+                        try {
+                            GVFaceRecognition.getInstance().CreateFR(MainActivity.this);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+
                         //copy landmark file to sdcard
                         final String targetPath = Constants.getFaceShapeModelPath();
                         if (!new File(targetPath).exists()) {
@@ -284,18 +293,9 @@ public class MainActivity extends AppCompatActivity {
                         int[] res = new int[1];
                         Arrays.fill(res, 0);
 
-                        //create FR model
-                        try {
-                            if(face == null) {
-                                face = gvFR.CreateFR(getAssets(), MODEL_PATH);
-                            }
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-
                         //extract feature via FR from image
-                        int retGetFeature01 = face.GetFeature( mat01, feature01, tmpPos01, res );
-                        if( retGetFeature01 == gvFR.SUCCESS ){
+                        int retGetFeature01 = GVFaceRecognition.getInstance().GetFeature( mat01, feature01, tmpPos01, res, true);
+                        if( retGetFeature01 == GVFaceRecognition.SUCCESS ){
                             final String strSDK= "[SDK results 01: feature01[0,1,128,510,511] \n("
                                     + feature01[0] + ","+ feature01[1] + ","+ feature01[128] + ","+ feature01[510] + ","+ feature01[511]
                                     + ")\n FR time: [" + res[0] + "] ticks]\n";
@@ -317,8 +317,8 @@ public class MainActivity extends AppCompatActivity {
                         }
 
 
-                        int retGetFeature02 = face.GetFeature( mat02, feature02, tmpPos02, res );
-                        if( retGetFeature02 == gvFR.SUCCESS ){
+                        int retGetFeature02 = GVFaceRecognition.getInstance().GetFeature( mat02, feature02, tmpPos02, res, true);
+                        if( retGetFeature02 == GVFaceRecognition.SUCCESS ){
                             final String strSDK = "[SDK results 02: feature02[0,1,128,510,511] \n("
                                     + feature02[0] + ","+ feature02[1] + ","+ feature02[128] + ","+ feature02[510] + ","+ feature02[511]
                                     + ")\n FR time: [" + res[0] + "] ticks]\n";
@@ -347,8 +347,8 @@ public class MainActivity extends AppCompatActivity {
                         //compare features
                         float[] compareScore = new float[1];
                         Arrays.fill(compareScore, 0);
-                        int retCompare = face.Compare(feature01,feature02,compareScore);
-                        if( retCompare == gvFR.SUCCESS ){
+                        int retCompare = GVFaceRecognition.getInstance().Compare(feature01,feature02,compareScore);
+                        if( retCompare == GVFaceRecognition.SUCCESS ){
                             final String strSDKscore1 = "SDK FR score: [" + compareScore[0] + "]\n" + "Compare time: " + (new Date().getTime() - startTime)+ "\n";
                             runOnUiThread(new Runnable() {
                                 @Override
