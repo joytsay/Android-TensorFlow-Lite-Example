@@ -32,6 +32,7 @@ import java.util.List;
 import java.lang.Math;
 
 public class GVFaceRecognition {
+    private static final String version = "v0.0.8";
     private static final String PATH_FACE_GV_MODEL = "model";
     private static final String FR_MODEL_NAME = "gvFR.tflite";
     private static final String LM_MODEL_NAME = "shape_predictor_5_face_landmarks.dat";
