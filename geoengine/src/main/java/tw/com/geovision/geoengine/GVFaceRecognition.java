@@ -32,7 +32,7 @@ import java.util.List;
 import java.lang.Math;
 
 public class GVFaceRecognition {
-    private static final String version = "v0.0.8";
+    public static final String version = "v0.0.8";
     private static final String PATH_FACE_GV_MODEL = "model";
     private static final String FR_MODEL_NAME = "gvFR.tflite";
     private static final String LM_MODEL_NAME = "shape_predictor_5_face_landmarks.dat";
@@ -288,7 +288,27 @@ public class GVFaceRecognition {
                 + score[0] + ") runTime(" +runTime + ") ticks\n");
         return 0;
     }
+    /* origin1W 是 origin 中每個 float * 10000 */
+    public int CompareWithInteger( int[] origin1W, int[] chose1W)
+    {
+        int sum = 0;
+        boolean bfeatureHasZero = false;
 
+        for(int i=0; i < 512; i++){
+            int diffValue = origin1W[i] - chose1W[i];
+            sum += (diffValue * diffValue);
+            /*if(origin1W[i] == 0 || chose1W[i] == 0){
+                bfeatureHasZero = true;
+                break;
+            }*/
+        }
+
+        if(!bfeatureHasZero) {
+            return sum;
+        }
+
+        return 1000000;
+    }
     public boolean ReleaseFR() {
         // release model
         interpreter.close();
