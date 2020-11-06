@@ -3,16 +3,16 @@ import android.content.Context;
 import android.content.res.AssetFileDescriptor;
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
-import android.graphics.Point;
 import android.os.Environment;
 import android.util.Log;
 
-import com.tzutalin.dlib.Constants;
 import com.tzutalin.dlib.FaceDet;
 import com.tzutalin.dlib.VisionDetRet;
 
 import org.opencv.android.Utils;
 import org.opencv.core.Mat;
+import org.opencv.core.Rect;
+import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 import org.tensorflow.lite.Interpreter;
@@ -30,12 +30,17 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.lang.Math;
+import java.util.Vector;
+
+import tw.com.geovision.geoengine.mtcnn.Box;
+import tw.com.geovision.geoengine.mtcnn.MTCNN;
 
 public class GVFaceRecognition {
     public static final String version = "v0.0.8";
     private static final String PATH_FACE_GV_MODEL = "model";
     private static final String FR_MODEL_NAME = "gvFR.tflite";
     private static final String LM_MODEL_NAME = "shape_predictor_5_face_landmarks.dat";
+    private static final String MTCNN_MODEL_NAME = "mtcnn_freezed_model.pb";
 
     private static GVFaceRecognition gvFaceRecognitionInstance = null;
 
@@ -43,6 +48,7 @@ public class GVFaceRecognition {
     private Interpreter interpreter;
     private final ArrayList<Classifier.Recognition> recognitions = new ArrayList<>();
     private FaceDet faceDet = null;
+    private MTCNN mtcnn = null;
 
     public static final int SUCCESS = 0; //执行接口返回成功
     public static final int ERROR_INVALID_PARAM = -1; //非法参数
@@ -86,8 +92,12 @@ public class GVFaceRecognition {
 
         gvFaceRecognitionInstance.inputSize = INPUT_SIZE;
         //FD and landmark via dlib
-        if(faceDet==null) {
-            faceDet = new FaceDet(context.getFilesDir().getAbsolutePath() + File.separator + PATH_FACE_GV_MODEL + File.separator + LM_MODEL_NAME);
+//        if(faceDet==null) {
+//            faceDet = new FaceDet(context.getFilesDir().getAbsolutePath() + File.separator + PATH_FACE_GV_MODEL + File.separator + LM_MODEL_NAME);
+//        }
+        AssetManager asm=context.getAssets();
+        if(mtcnn==null) {
+            mtcnn = new MTCNN(asm,context.getFilesDir().getAbsolutePath() + File.separator + PATH_FACE_GV_MODEL + File.separator + MTCNN_MODEL_NAME);
         }
         long createFRendTime = new Date().getTime();
         int runTime = (int) (createFRendTime - createFRstartTime);
@@ -102,45 +112,84 @@ public class GVFaceRecognition {
         List<org.opencv.core.Point> dliblandmarkPoints = new ArrayList<>();
         List<org.opencv.core.Point> landmarkPoints = new ArrayList<>();
         Mat resultMat = null;
-
         //do Face detection
         if(faceinfo==null) {
-            results = faceDet.detect(resultBitmap);
-            for (final VisionDetRet ret : results) {
-                int rectLeft = ret.getLeft() < 0 ? 0 : ret.getLeft();
-                int rectTop = ret.getTop() < 0 ? 0 : ret.getTop();
-                int rectRight = ret.getRight() > resultBitmap.getWidth() ? resultBitmap.getWidth() : ret.getRight();
-                int rectBottom = ret.getBottom() > resultBitmap.getHeight() ? resultBitmap.getHeight() : ret.getBottom();
-                // get 5 landmark points
-                ArrayList<Point> landmarks = ret.getFaceLandmarks();
-                for (Point point : landmarks) {
-                    int pointX = point.x;
-                    int pointY = point.y;
-                    org.opencv.core.Point landmark = new org.opencv.core.Point(pointX, pointY);
-                    dliblandmarkPoints.add(landmark);
+            //MTCNN FD & LM & crop
+            Bitmap bm= tw.com.geovision.geoengine.mtcnn.Utils.copyBitmap(resultBitmap);
+            try {
+                Vector<Box> boxes=mtcnn.detectFaces(bm,40);
+//                //draw MTCNN
+//                for (int i=0;i<boxes.size();i++){
+//                    tw.com.geovision.geoengine.mtcnn.Utils.drawRect(bm,boxes.get(i).transform2Rect());
+//                    tw.com.geovision.geoengine.mtcnn.Utils.drawPoints(bm,boxes.get(i).landmark);
+//                }
+                for (final Box ret : boxes) {
+                    int rectLeft = ret.left() < 0 ? 0 : ret.left();
+                    int rectTop = ret.top() < 0 ? 0 : ret.top();
+                    int rectRight = ret.right() > resultBitmap.getWidth() ? resultBitmap.getWidth() : ret.right();
+                    int rectBottom = ret.bottom() > resultBitmap.getHeight() ? resultBitmap.getHeight() : ret.bottom();
+                    // get 2 landmark points
+                    org.opencv.core.Point LeftEyeCenter = new org.opencv.core.Point(ret.landmark[0].x, ret.landmark[0].y);
+                    org.opencv.core.Point RightEyeCenter = new org.opencv.core.Point(ret.landmark[1].x, ret.landmark[1].y);
+                    landmarkPoints.add(LeftEyeCenter);
+                    landmarkPoints.add(RightEyeCenter);
+                    org.opencv.core.Point rect0 = new org.opencv.core.Point(rectLeft, rectTop);
+                    rectPoints.add(rect0);
+                    org.opencv.core.Point rect1 = new org.opencv.core.Point(rectRight, rectBottom);
+                    rectPoints.add(rect1);
+                    org.opencv.core.Point rect2 = new org.opencv.core.Point(rectRight, rectTop);
+                    rectPoints.add(rect2);
+                    org.opencv.core.Point rect3 = new org.opencv.core.Point(rectLeft, rectBottom);
+                    rectPoints.add(rect3);
+                    ////do face alignment
+                    long warpFRstartTime = new Date().getTime();
+                    resultMat = warp(ImageMat, rectPoints, landmarkPoints);
+                    long warpFRendTime = new Date().getTime();
+                    int runTime = (int) (warpFRendTime - warpFRstartTime);
+                    Log.d("gvFR", "Alignment and crop face runTime: " + runTime + " ticks\n");
                 }
-                org.opencv.core.Point dlibLeftEyeCenter = new org.opencv.core.Point((int)((dliblandmarkPoints.get(2).x + dliblandmarkPoints.get(3).x)*0.5), (int)((dliblandmarkPoints.get(2).y + dliblandmarkPoints.get(3).y)*0.5));
-                org.opencv.core.Point dlibRightEyeCenter = new org.opencv.core.Point((int)((dliblandmarkPoints.get(0).x + dliblandmarkPoints.get(1).x)*0.5), (int)((dliblandmarkPoints.get(0).y + dliblandmarkPoints.get(1).y)*0.5));
-                landmarkPoints.add(dlibLeftEyeCenter);
-                landmarkPoints.add(dlibRightEyeCenter);
-                org.opencv.core.Point rect0 = new org.opencv.core.Point(rectLeft, rectTop);
-                rectPoints.add(rect0);
-                org.opencv.core.Point rect1 = new org.opencv.core.Point(rectRight, rectBottom);
-                rectPoints.add(rect1);
-                org.opencv.core.Point rect2 = new org.opencv.core.Point(rectRight, rectTop);
-                rectPoints.add(rect2);
-                org.opencv.core.Point rect3 = new org.opencv.core.Point(rectLeft, rectBottom);
-                rectPoints.add(rect3);
-                ////do face alignment
-                long warpFRstartTime = new Date().getTime();
-                resultMat = warp(ImageMat, rectPoints, landmarkPoints);
-                long warpFRendTime = new Date().getTime();
-                int runTime = (int) (warpFRendTime - warpFRstartTime);
-                Log.d("gvFR", "Alignment and crop face runTime: " + runTime + " ticks\n");
-            }
-            if(results.size() == 0){ //no Face detected
+            }catch (Exception e){
+                Log.e("MTCNN","[*]detect false:"+e);
                 return ERROR_FAILURE;
             }
+
+////            dlib FD & LM & eyes align crop deprecated
+//            results = faceDet.detect(resultBitmap);
+//            for (final VisionDetRet ret : results) {
+//                int rectLeft = ret.getLeft() < 0 ? 0 : ret.getLeft();
+//                int rectTop = ret.getTop() < 0 ? 0 : ret.getTop();
+//                int rectRight = ret.getRight() > resultBitmap.getWidth() ? resultBitmap.getWidth() : ret.getRight();
+//                int rectBottom = ret.getBottom() > resultBitmap.getHeight() ? resultBitmap.getHeight() : ret.getBottom();
+//                // get 5 landmark points
+//                ArrayList<Point> landmarks = ret.getFaceLandmarks();
+//                for (Point point : landmarks) {
+//                    int pointX = point.x;
+//                    int pointY = point.y;
+//                    org.opencv.core.Point landmark = new org.opencv.core.Point(pointX, pointY);
+//                    dliblandmarkPoints.add(landmark);
+//                }
+//                org.opencv.core.Point dlibLeftEyeCenter = new org.opencv.core.Point((int)((dliblandmarkPoints.get(2).x + dliblandmarkPoints.get(3).x)*0.5), (int)((dliblandmarkPoints.get(2).y + dliblandmarkPoints.get(3).y)*0.5));
+//                org.opencv.core.Point dlibRightEyeCenter = new org.opencv.core.Point((int)((dliblandmarkPoints.get(0).x + dliblandmarkPoints.get(1).x)*0.5), (int)((dliblandmarkPoints.get(0).y + dliblandmarkPoints.get(1).y)*0.5));
+//                landmarkPoints.add(dlibLeftEyeCenter);
+//                landmarkPoints.add(dlibRightEyeCenter);
+//                org.opencv.core.Point rect0 = new org.opencv.core.Point(rectLeft, rectTop);
+//                rectPoints.add(rect0);
+//                org.opencv.core.Point rect1 = new org.opencv.core.Point(rectRight, rectBottom);
+//                rectPoints.add(rect1);
+//                org.opencv.core.Point rect2 = new org.opencv.core.Point(rectRight, rectTop);
+//                rectPoints.add(rect2);
+//                org.opencv.core.Point rect3 = new org.opencv.core.Point(rectLeft, rectBottom);
+//                rectPoints.add(rect3);
+//                ////do face alignment
+//                long warpFRstartTime = new Date().getTime();
+//                resultMat = warp(ImageMat, rectPoints, landmarkPoints);
+//                long warpFRendTime = new Date().getTime();
+//                int runTime = (int) (warpFRendTime - warpFRstartTime);
+//                Log.d("gvFR", "Alignment and crop face runTime: " + runTime + " ticks\n");
+//            }
+//            if(results.size() == 0){ //no Face detected
+//                return ERROR_FAILURE;
+//            }
         }else{ //given Rect by user
 
             //get face_x1_sdk Rect
@@ -177,7 +226,7 @@ public class GVFaceRecognition {
             Log.d("gvFR", "padding FD_[l,r,t,b](" + cropleft + "," + cropright + "," +croptop + "," + cropbottom +
                     "[w,h](" + (cropright - cropleft) + ","  + (cropbottom - croptop) +")\n");
 
-            org.opencv.core.Rect roi = new  org.opencv.core.Rect(cropleft,croptop,cropright-cropleft,cropbottom-croptop);
+            Rect roi = new  Rect(cropleft,croptop,cropright-cropleft,cropbottom-croptop);
             Mat croppedMat = ImageMat.submat(roi);
 
             int resizeLength = 224;
@@ -189,55 +238,87 @@ public class GVFaceRecognition {
             Utils.matToBitmap(croppedMat, croppedBitmap);
 //            SaveImage(croppedBitmap);
 
-            //do dlib FD & LM
-            long dlibStartTime = new Date().getTime();
-            results = faceDet.detect(croppedBitmap);
-            for (final VisionDetRet ret : results) {
-                int rectLeft = ret.getLeft() < 0 ? 0 : ret.getLeft();
-                int rectTop = ret.getTop() < 0 ? 0 : ret.getTop();
-                int rectRight = ret.getRight() > resultBitmap.getWidth() ? resultBitmap.getWidth() : ret.getRight();
-                int rectBottom = ret.getBottom() > resultBitmap.getHeight() ? resultBitmap.getHeight() : ret.getBottom();
-                // get 5 landmark points
-                ArrayList<Point> landmarks = ret.getFaceLandmarks();
-                for (Point point : landmarks) {
-                    int pointX = point.x;
-                    int pointY = point.y;
-                    org.opencv.core.Point landmark = new org.opencv.core.Point(pointX, pointY);
-                    dliblandmarkPoints.add(landmark);
+            //MTCNN FD & LM & crop
+            Bitmap bm= tw.com.geovision.geoengine.mtcnn.Utils.copyBitmap(croppedBitmap);
+            try {
+                Vector<Box> boxes=mtcnn.detectFaces(bm,40);
+//                //draw MTCNN
+//                for (int i=0;i<boxes.size();i++){
+//                    tw.com.geovision.geoengine.mtcnn.Utils.drawRect(bm,boxes.get(i).transform2Rect());
+//                    tw.com.geovision.geoengine.mtcnn.Utils.drawPoints(bm,boxes.get(i).landmark);
+//                }
+                for (final Box ret : boxes) {
+                    int rectLeft = ret.left() < 0 ? 0 : ret.left();
+                    int rectTop = ret.top() < 0 ? 0 : ret.top();
+                    int rectRight = ret.right() > resultBitmap.getWidth() ? resultBitmap.getWidth() : ret.right();
+                    int rectBottom = ret.bottom() > resultBitmap.getHeight() ? resultBitmap.getHeight() : ret.bottom();
+                    // get 2 landmark points
+                    org.opencv.core.Point LeftEyeCenter = new org.opencv.core.Point(ret.landmark[0].x, ret.landmark[0].y);
+                    org.opencv.core.Point RightEyeCenter = new org.opencv.core.Point(ret.landmark[1].x, ret.landmark[1].y);
+                    landmarkPoints.add(LeftEyeCenter);
+                    landmarkPoints.add(RightEyeCenter);
+                    ////do face alignment
+                    long warpFRstartTime = new Date().getTime();
+                    resultMat = warp(ImageMat, rectPoints, landmarkPoints);
+                    long warpFRendTime = new Date().getTime();
+                    int runTime = (int) (warpFRendTime - warpFRstartTime);
+                    Log.d("gvFR", "Alignment and crop face runTime: " + runTime + " ticks\n");
                 }
-                org.opencv.core.Point dlibLeftEyeCenter = new org.opencv.core.Point((int)((dliblandmarkPoints.get(2).x + dliblandmarkPoints.get(3).x)*0.5), (int)((dliblandmarkPoints.get(2).y + dliblandmarkPoints.get(3).y)*0.5));
-                org.opencv.core.Point dlibRightEyeCenter = new org.opencv.core.Point((int)((dliblandmarkPoints.get(0).x + dliblandmarkPoints.get(1).x)*0.5), (int)((dliblandmarkPoints.get(0).y + dliblandmarkPoints.get(1).y)*0.5));
-                landmarkPoints.add(dlibLeftEyeCenter);
-                landmarkPoints.add(dlibRightEyeCenter);
-            }
-
-            long dlibEndTime = new Date().getTime();
-            int runTime = (int) (dlibEndTime - dlibStartTime);
-
-
-            if(results.size() > 0){ //no Face detected
-                Log.d("gvFR", "dlib FD & LM faceCount(" + results.size() +
-                        ") landmarkLeft(" + landmarkPoints.get(0).x + "," + landmarkPoints.get(0).y + ") landmarkRight(" + landmarkPoints.get(1).x + "," + landmarkPoints.get(1).y + ")"
-                        +" runTime: " + runTime + " ticks\n");
-                ////do face alignment
-                long warpFRstartTime = new Date().getTime();
-                resultMat = warp(croppedMat, rectPoints, landmarkPoints);
-                long warpFRendTime = new Date().getTime();
-                int warpTime = (int) (warpFRendTime - warpFRstartTime);
-                Log.d("gvFR", "Alignment runTime: " + warpTime + " ticks\n");
-            }else{
-                Log.d("gvFR", "dlib FD & LM no face detected\n");
+            }catch (Exception e){
+                Log.e("MTCNN","[*]detect false:"+e);
                 return ERROR_FAILURE;
             }
+
+
+            //do dlib FD & LM deprecated
+//            long dlibStartTime = new Date().getTime();
+//            results = faceDet.detect(croppedBitmap);
+//            for (final VisionDetRet ret : results) {
+//                int rectLeft = ret.getLeft() < 0 ? 0 : ret.getLeft();
+//                int rectTop = ret.getTop() < 0 ? 0 : ret.getTop();
+//                int rectRight = ret.getRight() > resultBitmap.getWidth() ? resultBitmap.getWidth() : ret.getRight();
+//                int rectBottom = ret.getBottom() > resultBitmap.getHeight() ? resultBitmap.getHeight() : ret.getBottom();
+//                // get 5 landmark points
+//                ArrayList<Point> landmarks = ret.getFaceLandmarks();
+//                for (Point point : landmarks) {
+//                    int pointX = point.x;
+//                    int pointY = point.y;
+//                    org.opencv.core.Point landmark = new org.opencv.core.Point(pointX, pointY);
+//                    dliblandmarkPoints.add(landmark);
+//                }
+//                org.opencv.core.Point dlibLeftEyeCenter = new org.opencv.core.Point((int)((dliblandmarkPoints.get(2).x + dliblandmarkPoints.get(3).x)*0.5), (int)((dliblandmarkPoints.get(2).y + dliblandmarkPoints.get(3).y)*0.5));
+//                org.opencv.core.Point dlibRightEyeCenter = new org.opencv.core.Point((int)((dliblandmarkPoints.get(0).x + dliblandmarkPoints.get(1).x)*0.5), (int)((dliblandmarkPoints.get(0).y + dliblandmarkPoints.get(1).y)*0.5));
+//                landmarkPoints.add(dlibLeftEyeCenter);
+//                landmarkPoints.add(dlibRightEyeCenter);
+//            }
+//
+//            long dlibEndTime = new Date().getTime();
+//            int runTime = (int) (dlibEndTime - dlibStartTime);
+//
+//
+//            if(results.size() > 0){ //no Face detected
+//                Log.d("gvFR", "dlib FD & LM faceCount(" + results.size() +
+//                        ") landmarkLeft(" + landmarkPoints.get(0).x + "," + landmarkPoints.get(0).y + ") landmarkRight(" + landmarkPoints.get(1).x + "," + landmarkPoints.get(1).y + ")"
+//                        +" runTime: " + runTime + " ticks\n");
+//                ////do face alignment
+//                long warpFRstartTime = new Date().getTime();
+//                resultMat = warp(croppedMat, rectPoints, landmarkPoints);
+//                long warpFRendTime = new Date().getTime();
+//                int warpTime = (int) (warpFRendTime - warpFRstartTime);
+//                Log.d("gvFR", "Alignment runTime: " + warpTime + " ticks\n");
+//            }else{
+//                Log.d("gvFR", "dlib FD & LM no face detected\n");
+//                return ERROR_FAILURE;
+//            }
         }
 
 
         Bitmap output = Bitmap.createBitmap(INPUT_SIZE, INPUT_SIZE, Bitmap.Config.RGB_565);
         Utils.matToBitmap(resultMat, output);
-//        Bitmap resizeBitmap = Bitmap.createScaledBitmap(resultBitmap, INPUT_SIZE, INPUT_SIZE, false)
-        if (isSaveImage) {
+        Bitmap resizeBitmap = Bitmap.createScaledBitmap(resultBitmap, INPUT_SIZE, INPUT_SIZE, false);
+//        if (isSaveImage) {8c
             SaveImage(output);
-        }
+//        }
         ByteBuffer byteBuffer = convertBitmapToByteBuffer(output);
         float[][] embeddings = new float[1][512];
         long FRstartTime = new Date().getTime();
@@ -375,7 +456,7 @@ public class GVFaceRecognition {
 
         //compute the desired right eye x-coordinate based on the
         // desired x-coordinate of the left eye
-        org.opencv.core.Point desiredLeftEye = new org.opencv.core.Point(0.25,0.25);
+        org.opencv.core.Point desiredLeftEye = new org.opencv.core.Point(0.30,0.30);
         double desiredRightEyeX = 1.0 - desiredLeftEye.x;
         int desiredFaceWidth = resultWidth;
         int desiredFaceHeight = resultHeight;
@@ -395,17 +476,18 @@ public class GVFaceRecognition {
                 new org.opencv.core.Point((leftEye.x + rightEye.x)*0.5,(leftEye.y + rightEye.y)*0.5);
 
         //check input image rect and landmark
-//        Mat InputMat = originPhoto.clone();
-//        int thickness = 2;
-//        int lineType = 1;
-//        int shift = 0;
-//        Imgproc.circle(InputMat, leftEye, InputMat.cols()/100, new Scalar(0,0,255), thickness, lineType, shift);
-//        Imgproc.circle(InputMat, rightEye, InputMat.cols()/100, new Scalar(0,0,255), thickness, lineType, shift);
-//        Imgproc.circle(InputMat, eyesCenter, InputMat.cols()/100, new Scalar(0,255,0), thickness, lineType, shift);
-//        Imgproc.rectangle(InputMat, rect.get(0), rect.get(1), new Scalar(255,0,0), thickness, lineType, shift);
+        Mat InputMat = originPhoto.clone();
+        int thickness = 2;
+        int lineType = 1;
+        int shift = 0;
+        Imgproc.circle(InputMat, leftEye, InputMat.cols()/100, new Scalar(0,0,255), thickness, lineType, shift);
+        Imgproc.circle(InputMat, rightEye, InputMat.cols()/100, new Scalar(0,0,255), thickness, lineType, shift);
+        Imgproc.circle(InputMat, eyesCenter, InputMat.cols()/100, new Scalar(0,255,0), thickness, lineType, shift);
+        Imgproc.rectangle(InputMat, rect.get(0), rect.get(1), new Scalar(255,0,0), thickness, lineType, shift);
+//        //debug save image
 //        Bitmap output = Bitmap.createBitmap(InputMat.cols(), InputMat.rows(), Bitmap.Config.RGB_565);
 //        Utils.matToBitmap(InputMat, output);
-
+//        SaveImage(output);
         //grab the rotation matrix for rotating and scaling the face
         Mat M = Imgproc.getRotationMatrix2D(eyesCenter,angle, scale);
 
@@ -425,8 +507,8 @@ public class GVFaceRecognition {
         Imgproc.warpAffine(originPhoto, outputMat, M, new Size(resultWidth, resultHeight), Imgproc.INTER_CUBIC);
 
         //check outputBitmap
-//        Bitmap outputBitmap = Bitmap.createBitmap(outputMat.cols(), outputMat.rows(), Bitmap.Config.RGB_565);
-//        Utils.matToBitmap(outputMat, outputBitmap);
+        Bitmap outputBitmap = Bitmap.createBitmap(outputMat.cols(), outputMat.rows(), Bitmap.Config.RGB_565);
+        Utils.matToBitmap(outputMat, outputBitmap);
 
 //deprecated Perspective transform
 //        Mat startM = Converters.vector_Point2f_to_Mat(rect);
