@@ -39,7 +39,7 @@ import tw.com.geovision.geoengine.mtcnn.MTCNN;
 import static java.lang.Math.abs;
 
 public class GVFaceRecognition {
-    public static final String version = "v0.0.8";
+    public static final String version = "v0.1.0";
     private static final String PATH_FACE_GV_MODEL = "model";
     private static final String FR_MODEL_NAME = "gvFR.tflite";
     private static final String LM_MODEL_NAME = "shape_predictor_5_face_landmarks.dat";
@@ -126,7 +126,7 @@ public class GVFaceRecognition {
             //MTCNN FD & LM & crop
             Bitmap bm= tw.com.geovision.geoengine.mtcnn.Utils.copyBitmap(resultBitmap);
             try {
-                Vector<Box> boxes=mtcnn.detectFaces(bm,40);
+                Vector<Box> boxes=mtcnn.detectFaces(bm,100);
 //                //draw MTCNN
 //                for (int i=0;i<boxes.size();i++){
 //                    tw.com.geovision.geoengine.mtcnn.Utils.drawRect(bm,boxes.get(i).transform2Rect());
@@ -209,6 +209,16 @@ public class GVFaceRecognition {
             rectPoints.add(rect2);
             org.opencv.core.Point rect3 = new org.opencv.core.Point(faceinfo.mRect.left, faceinfo.mRect.bottom);
             rectPoints.add(rect3);
+            Mat inputRectMat = ImageMat.clone();
+            int thickness = 2;
+            int lineType = 1;
+            int shift = 0;
+            Imgproc.rectangle(inputRectMat, rect0, rect1, new Scalar(0,255,0), thickness, lineType, shift);
+            if(bSaveDebugImage) {
+                Bitmap inputRectBitmap = Bitmap.createBitmap(inputRectMat.cols(),  inputRectMat.rows(),Bitmap.Config.RGB_565);;
+                Utils.matToBitmap(inputRectMat, inputRectBitmap);
+                SaveImage(inputRectBitmap, randomUUID);
+            }
             Log.d("gvFR", "faceinfo FD_[l,r,t,b](" + faceinfo.mRect.left + "," + faceinfo.mRect.right + "," +faceinfo.mRect.top + "," + faceinfo.mRect.bottom +
                     "[w,h](" + (faceinfo.mRect.right - faceinfo.mRect.left) + ","  + (faceinfo.mRect.bottom - faceinfo.mRect.top) +")\n");
 
@@ -239,7 +249,11 @@ public class GVFaceRecognition {
 
             int resizeLength = 224;
             if(croppedMat.cols() > resizeLength || croppedMat.rows() > resizeLength){
-                Imgproc.resize( croppedMat, croppedMat, new Size(resizeLength,resizeLength));
+                float resizeRatio = (float) croppedMat.cols()/(float)resizeLength >
+                        (float) croppedMat.rows()/(float)resizeLength ? (float) croppedMat.cols()/(float)resizeLength
+                        : (float) croppedMat.rows()/(float)resizeLength;
+                Imgproc.resize( croppedMat, croppedMat, new Size((int)(croppedMat.cols()/resizeRatio),
+                        (int)(croppedMat.rows()/resizeRatio)));
             }
 
             Bitmap croppedBitmap = Bitmap.createBitmap(croppedMat.cols(),  croppedMat.rows(),Bitmap.Config.RGB_565);
@@ -250,12 +264,16 @@ public class GVFaceRecognition {
             //MTCNN FD & LM & crop
             Bitmap bm= tw.com.geovision.geoengine.mtcnn.Utils.copyBitmap(croppedBitmap);
             try {
-                Vector<Box> boxes=mtcnn.detectFaces(bm,40);
+                Vector<Box> boxes=mtcnn.detectFaces(bm,100);
 //                //draw MTCNN
 //                for (int i=0;i<boxes.size();i++){
 //                    tw.com.geovision.geoengine.mtcnn.Utils.drawRect(bm,boxes.get(i).transform2Rect());
 //                    tw.com.geovision.geoengine.mtcnn.Utils.drawPoints(bm,boxes.get(i).landmark);
 //                }
+                if(boxes.size() == 0){
+                    Log.e("MTCNN","[*]no face detected");
+                    return ERROR_NOT_EXIST;
+                }
                 Box ret = boxes.get(0);
                 int rectLeft = ret.left() < 0 ? 0 : ret.left();
                 int rectTop = ret.top() < 0 ? 0 : ret.top();
@@ -276,7 +294,7 @@ public class GVFaceRecognition {
                 MTCNNrectPoints.add(MTCNNrect3);
                 ////do face alignment
                 long warpFRstartTime = new Date().getTime();
-                resultMat = warp(ImageMat, MTCNNrectPoints, landmarkPoints);
+                resultMat = warp(croppedMat, MTCNNrectPoints, landmarkPoints);
                 long warpFRendTime = new Date().getTime();
                 int runTime = (int) (warpFRendTime - warpFRstartTime);
                 Log.d("gvFR", "Alignment and crop face runTime: " + runTime + " ticks\n");
