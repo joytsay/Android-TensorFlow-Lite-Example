@@ -3,6 +3,7 @@ import android.content.Context;
 import android.content.res.AssetFileDescriptor;
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
+import android.graphics.Matrix;
 import android.os.Environment;
 import android.util.Log;
 
@@ -39,7 +40,7 @@ import tw.com.geovision.geoengine.mtcnn.MTCNN;
 import static java.lang.Math.abs;
 
 public class GVFaceRecognition {
-    public static final String version = "v0.1.0";
+    public static final String version = "v0.1.1";
     private static final String PATH_FACE_GV_MODEL = "model";
     private static final String FR_MODEL_NAME = "gvFR.tflite";
     private static final String LM_MODEL_NAME = "shape_predictor_5_face_landmarks.dat";
@@ -63,11 +64,13 @@ public class GVFaceRecognition {
     private static final int BATCH_SIZE = 1;
     private static final int PIXEL_SIZE = 3;
     private static final float THRESHOLD = 0.1f;
-    private static final int INPUT_SIZE = 112;
+    private static final int INPUT_SIZE = 224;
     private static final int IMAGE_MEAN = 128;
     private static final float IMAGE_STD = 128.0f;
+    private static final int FEATURE_SIZE = 512;
 
     private boolean quant;
+    private boolean bDoJitter;
     private int inputSize;
     private UUID randomUUID;
     private boolean bSaveDebugImage;
@@ -87,6 +90,8 @@ public class GVFaceRecognition {
     public void CreateFR(final Context context) throws IOException {
         // load model
         long createFRstartTime = new Date().getTime();
+        quant = false;
+        bDoJitter = false;
         //GPU mode
 //        delegate = new GpuDelegate();
 //        Interpreter.Options options = (new Interpreter.Options()).addDelegate(delegate);
@@ -94,8 +99,9 @@ public class GVFaceRecognition {
 //        gvFaceRecognitionInstance.interpreter = new Interpreter(new File(context.getFilesDir().getAbsolutePath() + File.separator + PATH_FACE_GV_MODEL + File.separator + FR_MODEL_NAME), options);
 
         //CPU mode
-        gvFaceRecognitionInstance.interpreter = new Interpreter(new File(context.getFilesDir().getAbsolutePath() + File.separator + PATH_FACE_GV_MODEL + File.separator + FR_MODEL_NAME),  new Interpreter.Options());
-
+        Interpreter.Options tfliteOptions = new Interpreter.Options();
+        tfliteOptions.setNumThreads(6);
+        gvFaceRecognitionInstance.interpreter = new Interpreter(new File(context.getFilesDir().getAbsolutePath() + File.separator + PATH_FACE_GV_MODEL + File.separator + FR_MODEL_NAME), tfliteOptions);
         gvFaceRecognitionInstance.inputSize = INPUT_SIZE;
         //FD and landmark via dlib
 //        if(faceDet==null) {
@@ -347,14 +353,33 @@ public class GVFaceRecognition {
 //            }
         }
 
-
         Bitmap output = Bitmap.createBitmap(INPUT_SIZE, INPUT_SIZE, Bitmap.Config.RGB_565);
         Utils.matToBitmap(resultMat, output);
-        Bitmap resizeBitmap = Bitmap.createScaledBitmap(resultBitmap, INPUT_SIZE, INPUT_SIZE, false);
-        ByteBuffer byteBuffer = convertBitmapToByteBuffer(output);
-        float[][] embeddings = new float[1][512];
+
+        //do FR
         long FRstartTime = new Date().getTime();
-        interpreter.run(byteBuffer, embeddings);
+        float[][] embeddings = new float[1][FEATURE_SIZE];
+
+        if(bDoJitter){ //flip jitter once
+            Matrix matrix = new Matrix();
+            matrix.postScale(-1, 1, (int)(output.getWidth()*0.5), (int)(output.getHeight()*0.5));
+            Bitmap mirrorOutput = Bitmap.createBitmap(output, 0, 0, output.getWidth(), output.getHeight(), matrix, true);
+            if(bSaveDebugImage) {
+                SaveImage(mirrorOutput, randomUUID);
+            }
+            float[][] embeddingsOrigin = new float[1][FEATURE_SIZE];
+            float[][] embeddingsMirror = new float[1][FEATURE_SIZE];
+            ByteBuffer byteBuffer = convertBitmapToByteBuffer(output);
+            interpreter.run(byteBuffer, embeddingsOrigin);
+            ByteBuffer byteBufferMirror = convertBitmapToByteBuffer(mirrorOutput);
+            interpreter.run(byteBufferMirror, embeddingsMirror);
+            for(int i=0;i<FEATURE_SIZE;i++){
+                embeddings[0][i] = (float) ((embeddingsOrigin[0][i] + embeddingsMirror[0][i])*0.5);
+            }
+        }else{ //no jitter
+            ByteBuffer byteBuffer = convertBitmapToByteBuffer(output);
+            interpreter.run(byteBuffer, embeddings);
+        }
         long FRendTime = new Date().getTime();
         res[0] = (int) (FRendTime - FRstartTime);
         Log.d("gvFR", "FR feature[0,1,128,510,511] ("
@@ -367,7 +392,7 @@ public class GVFaceRecognition {
     public int GetFeatureByBitmap(Bitmap resultBitmap, float[] feature, List faceinfos, int[] res) { //deprecated
         Bitmap resizeBitmap = Bitmap.createScaledBitmap(resultBitmap, INPUT_SIZE, INPUT_SIZE, false);
         ByteBuffer byteBuffer = convertBitmapToByteBuffer(resizeBitmap);
-        float[][] embeddings = new float[1][512];
+        float[][] embeddings = new float[1][FEATURE_SIZE];
         long GetFeatureByBitmapStartTime = new Date().getTime();
         interpreter.run(byteBuffer, embeddings);
         long GetFeatureByBitmapEndTime = new Date().getTime();
@@ -380,7 +405,7 @@ public class GVFaceRecognition {
         long CompareStartTime = new Date().getTime();
         double sum = 0;
         boolean bfeatureHasZero = false;
-        for(int i=0;i<512;i++){
+        for(int i=0;i<FEATURE_SIZE;i++){
             double diffValue = origin[i] - chose[i];
 //            sum += Math.pow(origin[i] - chose[i],2);
             sum += (diffValue * diffValue);
@@ -407,7 +432,7 @@ public class GVFaceRecognition {
         int sum = 0;
         boolean bfeatureHasZero = false;
 
-        for(int i=0; i < 512; i++){
+        for(int i=0; i < FEATURE_SIZE; i++){
             int diffValue = origin1W[i] - chose1W[i];
             sum += (diffValue * diffValue);
             /*if(origin1W[i] == 0 || chose1W[i] == 0){
