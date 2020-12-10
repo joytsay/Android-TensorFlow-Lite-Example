@@ -42,7 +42,7 @@ import tw.com.geovision.geoengine.mtcnn.MTCNN;
 import static java.lang.Math.abs;
 
 public class GVFaceRecognition {
-    public static final String version = "v0.1.1";
+    public static final String version = "v0.1.2";
     private static final String PATH_FACE_GV_MODEL = "model";
     private static final String FR_MODEL_NAME = "gvFR.tflite";
     private static final String LM_MODEL_NAME = "shape_predictor_5_face_landmarks.dat";
@@ -121,7 +121,7 @@ public class GVFaceRecognition {
 
         //CPU mode
         Interpreter.Options tfliteOptions = new Interpreter.Options();
-        tfliteOptions.setNumThreads(4);
+        tfliteOptions.setNumThreads(2);
         gvFaceRecognitionInstance.interpreter = new Interpreter(new File(context.getFilesDir().getAbsolutePath() + File.separator + PATH_FACE_GV_MODEL + File.separator + FR_MODEL_NAME), tfliteOptions);
         gvFaceRecognitionInstance.inputSize = INPUT_SIZE;
         //FD and landmark via dlib
@@ -140,14 +140,18 @@ public class GVFaceRecognition {
     public int GetFeature(Mat ImageMat, float[] feature, FaceInfo faceinfo, int[] res, boolean isSaveImage) {
         Bitmap resultBitmap = Bitmap.createBitmap(ImageMat.cols(),  ImageMat.rows(),Bitmap.Config.RGB_565);;
         Utils.matToBitmap(ImageMat, resultBitmap);
-        List<VisionDetRet> results = null;
         List<org.opencv.core.Point> rectPoints = new ArrayList<>();
+        Mat resultMat = null;
         bSaveDebugImage = isSaveImage;
         randomUUID = UUID.randomUUID();
         //do Face detection
         if(faceinfo==null) {
             //MTCNN FD & LM & crop
             Vector<Box> boxes = faceDetect(ImageMat,100);
+            if (boxes.size() == 0){
+                return ERROR_NOT_EXIST;
+            }
+            resultMat = getCrop(ImageMat, boxes.get(0)); //get first face only
         }else{ //given Rect by user
             //get face_x1_sdk Rect
             org.opencv.core.Point rect0 = new org.opencv.core.Point(faceinfo.mRect.left, faceinfo.mRect.top);
@@ -171,7 +175,7 @@ public class GVFaceRecognition {
             Log.d("gvFR", "faceinfo FD_[l,r,t,b](" + faceinfo.mRect.left + "," + faceinfo.mRect.right + "," +faceinfo.mRect.top + "," + faceinfo.mRect.bottom +
                     "[w,h](" + (faceinfo.mRect.right - faceinfo.mRect.left) + ","  + (faceinfo.mRect.bottom - faceinfo.mRect.top) +")\n");
 
-            //need to crop input image first to decrease FD loading
+            //need to crop and give padding to decrease FD loading
             int padding = (int)(abs(faceinfo.mRect.right - faceinfo.mRect.left)*0.25);
             int cropleft = faceinfo.mRect.left - padding;
             if( cropleft < 0) { cropleft = 0; }
@@ -204,10 +208,18 @@ public class GVFaceRecognition {
             if(bSaveDebugImage) {
                 SaveImage(croppedBitmap, randomUUID);
             }
+
+            //MTCNN FD & LM & crop
+            Vector<Box> boxes = faceDetect(croppedMat,100);
+            if (boxes.size() == 0){
+                return ERROR_NOT_EXIST;
+            }
+            resultMat = getCrop(croppedMat, boxes.get(0)); //get first face only
         }
 
-        Bitmap output = Bitmap.createBitmap(INPUT_SIZE, INPUT_SIZE, Bitmap.Config.RGB_565);
         //do FR
+        Bitmap output = Bitmap.createBitmap(INPUT_SIZE, INPUT_SIZE, Bitmap.Config.RGB_565);
+        Utils.matToBitmap(resultMat, output);
         long FRstartTime = new Date().getTime();
         float[][] embeddings = new float[1][FEATURE_SIZE];
 
@@ -237,7 +249,7 @@ public class GVFaceRecognition {
                 + embeddings[0][0] + ","+ embeddings[0][1] + ","+ embeddings[0][128] + ","+ embeddings[0][510] + ","+ embeddings[0][511]
                 + ") runTime(" + res[0] + ") ticks\n");
         System.arraycopy(embeddings[0], 0, feature, 0, embeddings[0].length);
-        return 0;
+        return SUCCESS;
     }
 
     public int GetFeatureByBitmap(Bitmap resultBitmap, float[] feature, List faceinfos, int[] res) { //deprecated
@@ -425,7 +437,7 @@ public class GVFaceRecognition {
         return outputMat;
     }
 
-    public Mat getCrop(Mat src, Box faceObj){
+    private Mat getCrop(Mat src, Box faceObj){
         // get 2 landmark points
         org.opencv.core.Point LeftEyeCenter = new org.opencv.core.Point(faceObj.landmark[0].x,faceObj.landmark[0].y);
         org.opencv.core.Point RightEyeCenter = new org.opencv.core.Point(faceObj.landmark[1].x,faceObj.landmark[1].y);
