@@ -42,7 +42,7 @@ import tw.com.geovision.geoengine.mtcnn.MTCNN;
 import static java.lang.Math.abs;
 
 public class GVFaceRecognition {
-    public static final String version = "v0.1.2";
+    public static final String version = "v0.2.0";
     private static final String PATH_FACE_GV_MODEL = "model";
     private static final String FR_MODEL_NAME = "gvFR.tflite";
     private static final String LM_MODEL_NAME = "shape_predictor_5_face_landmarks.dat";
