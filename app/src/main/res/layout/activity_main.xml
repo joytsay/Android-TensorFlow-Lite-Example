@@ -56,7 +56,8 @@
             android:layout_marginBottom="50dp"
             android:text="@string/fr_run"
             android:textAllCaps="false"
-            android:textColor="@android:color/black" />
+            android:textColor="@android:color/black"
+            android:visibility="gone" />
 
         <TextView
             android:id="@+id/textViewFRResult"
@@ -66,7 +67,8 @@
             android:maxLines="20"
             android:text="@string/fr_embeddings"
             android:textAllCaps="false"
-            android:textColor="@android:color/black" />
+            android:textColor="@android:color/black"
+            android:visibility="gone" />
 
         <TextView
             android:id="@+id/textViewFRScore"
@@ -76,7 +78,8 @@
             android:maxLines="2"
             android:text="@string/fr_score"
             android:textAllCaps="false"
-            android:textColor="@android:color/black" />
+            android:textColor="@android:color/black"
+            android:visibility="gone" />
 
         <Button
             android:id="@+id/btnRunSDK"

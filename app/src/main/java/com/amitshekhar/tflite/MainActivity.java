@@ -119,9 +119,9 @@ public class MainActivity extends AppCompatActivity {
             imageView.setImageBitmap(imgBitmapFR01);
             //Resize image and prepare tensor pixel normalized to [-1 ~ +1]
             Bitmap resizeBitmap = Bitmap.createScaledBitmap(imgBitmapFR01, INPUT_SIZE, INPUT_SIZE, false);
-            //Inference Face Recognition
-            results = classifier.recognizeImage(resizeBitmap, "0");
-            textViewResult.setText(results.toString());
+            //Inference Face Recognition  //deprecated
+//            results = classifier.recognizeImage(resizeBitmap, "0");
+//            textViewResult.setText(results.toString());
         }
 
         if(requestCode == RESULT_LOAD_IMAGE02 && resultCode == RESULT_OK && null != data){
@@ -138,9 +138,9 @@ public class MainActivity extends AppCompatActivity {
             imageView.setImageBitmap(imgBitmapFR02);
             //Resize image and prepare tensor pixel normalized to [-1 ~ +1]
             Bitmap resizeBitmap = Bitmap.createScaledBitmap(imgBitmapFR02, INPUT_SIZE, INPUT_SIZE, false);
-            //Inference Face Recognition
-            results = classifier.recognizeImage(resizeBitmap, "1");
-            textViewResult.setText(results.toString());
+            //Inference Face Recognition  //deprecated
+//            results = classifier.recognizeImage(resizeBitmap, "1");
+//            textViewResult.setText(results.toString());
         }
     }//onActivityResult
 
@@ -171,8 +171,8 @@ public class MainActivity extends AppCompatActivity {
             verifyPermissions(this);
         }
 
-        //create TensorFlow Lite model
-        initTensorFlowAndLoadModel();
+        //create TensorFlow Lite model  //deprecated
+//        initTensorFlowAndLoadModel();
 
         executor.execute(new Runnable() {
             @Override
@@ -210,16 +210,16 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        //calculate Face similarity
-        buttonDoFR = findViewById(R.id.btnRunFR);
-        buttonDoFR.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                double FRscore = classifier.getFRscore();
-                String strFRscore= "FR Score: " + FRscore;
-                textViewScore.setText(strFRscore);
-            }
-        });
+        //calculate Face similarity //deprecated
+//        buttonDoFR = findViewById(R.id.btnRunFR);
+//        buttonDoFR.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View view) {
+//                double FRscore = classifier.getFRscore();
+//                String strFRscore= "FR Score: " + FRscore;
+//                textViewScore.setText(strFRscore);
+//            }
+//        });
 
 
         //run interface for face_x1_sdk
@@ -239,17 +239,17 @@ public class MainActivity extends AppCompatActivity {
                             e.printStackTrace();
                         }
 
-                        //copy landmark file to sdcard
-                        final String targetPath = Constants.getFaceShapeModelPath();
-                        if (!new File(targetPath).exists()) {
-                            runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    Toast.makeText(MainActivity.this, "Copy landmark model to " + targetPath, Toast.LENGTH_SHORT).show();
-                                }
-                            });
-                            FileUtils.copyFileFromRawToOthers(getApplicationContext(), R.raw.shape_predictor_5_face_landmarks, targetPath);
-                        }
+                        //copy landmark file to sdcard // deprecated
+//                        final String targetPath = Constants.getFaceShapeModelPath();
+//                        if (!new File(targetPath).exists()) {
+//                            runOnUiThread(new Runnable() {
+//                                @Override
+//                                public void run() {
+//                                    Toast.makeText(MainActivity.this, "Copy landmark model to " + targetPath, Toast.LENGTH_SHORT).show();
+//                                }
+//                            });
+//                            FileUtils.copyFileFromRawToOthers(getApplicationContext(), shape_predictor_5_face_landmarks, targetPath);
+//                        }
 
                         //get imgBitmapFR to Mat
                         Mat mat01 = new Mat();
@@ -365,21 +365,21 @@ public class MainActivity extends AppCompatActivity {
         });
     }//onCreate
 
-    private void initTensorFlowAndLoadModel() {
-        executor.execute(new Runnable() {
-            @Override
-            public void run() {
-                try {
-
-                    classifier = TensorFlowImageClassifier.create(
-                            getAssets(),
-                            MODEL_PATH,
-                            INPUT_SIZE,
-                            QUANT);
-                } catch (final Exception e) {
-                    throw new RuntimeException("Error initializing TensorFlow!", e);
-                }
-            }
-        });//thread
-    }//initTensorFlowAndLoadModel
+//    private void initTensorFlowAndLoadModel() {  //deprecated
+//        executor.execute(new Runnable() {
+//            @Override
+//            public void run() {
+//                try {
+//
+//                    classifier = TensorFlowImageClassifier.create(
+//                            getAssets(),
+//                            MODEL_PATH,
+//                            INPUT_SIZE,
+//                            QUANT);
+//                } catch (final Exception e) {
+//                    throw new RuntimeException("Error initializing TensorFlow!", e);
+//                }
+//            }
+//        });//thread
+//    }//initTensorFlowAndLoadModel
 }
