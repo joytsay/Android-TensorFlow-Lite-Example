@@ -9,9 +9,6 @@ import android.os.Environment;
 import android.util.Log;
 import android.widget.GridView;
 
-import com.tzutalin.dlib.FaceDet;
-import com.tzutalin.dlib.VisionDetRet;
-
 import org.opencv.android.Utils;
 import org.opencv.core.Mat;
 import org.opencv.core.Rect;
@@ -45,7 +42,6 @@ public class GVFaceRecognition {
     public static final String version = "v0.2.0";
     private static final String PATH_FACE_GV_MODEL = "model";
     private static final String FR_MODEL_NAME = "gvFR.tflite";
-    private static final String LM_MODEL_NAME = "shape_predictor_5_face_landmarks.dat";
     private static final String MTCNN_MODEL_NAME = "mtcnn_freezed_model.pb";
 
     private static GVFaceRecognition gvFaceRecognitionInstance = null;
@@ -53,7 +49,6 @@ public class GVFaceRecognition {
 //    private static GpuDelegate delegate;
     private Interpreter interpreter;
     private final ArrayList<Classifier.Recognition> recognitions = new ArrayList<>();
-    private FaceDet faceDet = null;
     private MTCNN mtcnn = null;
 
     public static final int SUCCESS = 0; //执行接口返回成功
@@ -124,10 +119,7 @@ public class GVFaceRecognition {
         tfliteOptions.setNumThreads(2);
         gvFaceRecognitionInstance.interpreter = new Interpreter(new File(context.getFilesDir().getAbsolutePath() + File.separator + PATH_FACE_GV_MODEL + File.separator + FR_MODEL_NAME), tfliteOptions);
         gvFaceRecognitionInstance.inputSize = INPUT_SIZE;
-        //FD and landmark via dlib
-//        if(faceDet==null) {
-//            faceDet = new FaceDet(context.getFilesDir().getAbsolutePath() + File.separator + PATH_FACE_GV_MODEL + File.separator + LM_MODEL_NAME);
-//        }
+
         AssetManager asm=context.getAssets();
         if(mtcnn==null) {
             mtcnn = new MTCNN(asm,context.getFilesDir().getAbsolutePath() + File.separator + PATH_FACE_GV_MODEL + File.separator + MTCNN_MODEL_NAME);

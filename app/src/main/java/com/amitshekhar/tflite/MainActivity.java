@@ -22,8 +22,6 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.tzutalin.dlib.Constants;
-import com.tzutalin.dlib.FaceDet;
 import com.wonderkiln.camerakit.CameraView;
 
 
@@ -71,7 +69,6 @@ public class MainActivity extends AppCompatActivity {
     Bitmap imgBitmapFR02;
     Bitmap imgBitmapAlign01;
     Bitmap imgBitmapAlign02;
-    private FaceDet mFaceDet;
 
     // Storage Permissions
     private static String[] PERMISSIONS_REQ = {
