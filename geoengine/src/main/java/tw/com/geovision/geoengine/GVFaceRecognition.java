@@ -35,6 +35,7 @@ import java.util.Vector;
 
 import tw.com.geovision.geoengine.mtcnn.Box;
 import tw.com.geovision.geoengine.mtcnn.MTCNN;
+import tw.com.geovision.geoengine.tnn.tnnFR;
 
 import static java.lang.Math.abs;
 
@@ -43,7 +44,7 @@ public class GVFaceRecognition {
     private static final String PATH_FACE_GV_MODEL = "model";
     private static final String FR_MODEL_NAME = "gvFR.tflite";
     private static final String MTCNN_MODEL_NAME = "mtcnn_freezed_model.pb";
-
+    public static final String FR_TNN[] = {"gvFR.quantized.tnnproto", "gvFR.quantized.tnnmodel"};
     private static GVFaceRecognition gvFaceRecognitionInstance = null;
 
 //    private static GpuDelegate delegate;
@@ -104,6 +105,9 @@ public class GVFaceRecognition {
     }
 
     public void CreateFR(final Context context) throws IOException {
+        // load TNN model
+        tnnFR.init(FR_TNN[0],FR_TNN[1],context.getFilesDir().getAbsolutePath() + File.separator + PATH_FACE_GV_MODEL,false);
+
         // load model
         long createFRstartTime = new Date().getTime();
         quant = false;
