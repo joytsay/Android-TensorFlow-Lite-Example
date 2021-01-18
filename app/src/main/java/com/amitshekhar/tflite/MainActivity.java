@@ -58,7 +58,7 @@ public class MainActivity extends AppCompatActivity {
     private Classifier classifier;
 
     private Executor executor = Executors.newSingleThreadExecutor();
-    private TextView textViewResult, textViewScore, textViewSDK01, textViewSDK02, textViewSDKScore;
+    private TextView textViewResult, textViewSDK01, textViewSDK02, textViewSDK03, textViewSDK04, textViewSDKScore;
     private Button btnDetectObject, btnToggleCamera, butttonFR1, buttonFR2, buttonDoFR, buttonDoSDK;
     private ImageView imageViewResult;
     private CameraView cameraView;
@@ -147,9 +147,10 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         textViewResult = findViewById(R.id.textViewFRResult);
         textViewResult.setMovementMethod(new ScrollingMovementMethod());
-        textViewScore = findViewById(R.id.textViewFRScore);
         textViewSDK01 = findViewById(R.id.textViewSDKResult01);
         textViewSDK02 = findViewById(R.id.textViewSDKResult02);
+        textViewSDK03 = findViewById(R.id.textViewSDKResult03);
+        textViewSDK04 = findViewById(R.id.textViewSDKResult04);
         textViewSDKScore = findViewById(R.id.textViewSDKScore);
 
 
@@ -273,6 +274,10 @@ public class MainActivity extends AppCompatActivity {
                         Arrays.fill(feature01, 0.0f);
                         float[] feature02 = new float[512];
                         Arrays.fill(feature02, 0.0f);
+                        float[] feature03 = new float[512];
+                        Arrays.fill(feature03, 0.0f);
+                        float[] feature04 = new float[512];
+                        Arrays.fill(feature04, 0.0f);
 
 
                         //user defined Rect for tmpPos example code
@@ -291,9 +296,9 @@ public class MainActivity extends AppCompatActivity {
                         Arrays.fill(res, 0);
 
                         //extract feature via FR from image
-                        int retGetFeature01 = GVFaceRecognition.getInstance().GetFeature( mat01, feature01, tmpPos01, res, true);
+                        int retGetFeature01 = GVFaceRecognition.getInstance().GetFeature( mat01, feature01, tmpPos01, res, true, false);
                         if( retGetFeature01 == GVFaceRecognition.SUCCESS ){
-                            final String strSDK= "[SDK results 01: feature01[0,1,128,510,511] \n("
+                            final String strSDK= "[SDK TFlite results 01: feature01[0,1,128,510,511] \n("
                                     + feature01[0] + ","+ feature01[1] + ","+ feature01[128] + ","+ feature01[510] + ","+ feature01[511]
                                     + ")\n FR time: [" + res[0] + "] ticks]\n";
                             runOnUiThread(new Runnable() {
@@ -304,7 +309,7 @@ public class MainActivity extends AppCompatActivity {
                             });
                             Log.d("MainActivity","retGetFeature01" + strSDK);
                         }else{
-                            final String strSDK= "[SDK results 01: FD not found] \n";
+                            final String strSDK= "[SDK TFlite results 01: FD not found] \n";
                             runOnUiThread(new Runnable() {
                                 @Override
                                 public void run() {
@@ -314,9 +319,9 @@ public class MainActivity extends AppCompatActivity {
                         }
 
 
-                        int retGetFeature02 = GVFaceRecognition.getInstance().GetFeature( mat02, feature02, tmpPos02, res, true);
+                        int retGetFeature02 = GVFaceRecognition.getInstance().GetFeature( mat02, feature02, tmpPos02, res, true, false);
                         if( retGetFeature02 == GVFaceRecognition.SUCCESS ){
-                            final String strSDK = "[SDK results 02: feature02[0,1,128,510,511] \n("
+                            final String strSDK = "[SDK TFlite results 02: feature03[0,1,128,510,511] \n("
                                     + feature02[0] + ","+ feature02[1] + ","+ feature02[128] + ","+ feature02[510] + ","+ feature02[511]
                                     + ")\n FR time: [" + res[0] + "] ticks]\n";
 
@@ -329,7 +334,7 @@ public class MainActivity extends AppCompatActivity {
 
                             Log.d("MainActivity","retGetFeature02" + strSDK);
                         }else{
-                            final String strSDK= "[SDK results 02: FD not found] \n";
+                            final String strSDK= "[SDK TFlite results 02: FD not found] \n";
                             runOnUiThread(new Runnable() {
                                 @Override
                                 public void run() {
@@ -338,15 +343,67 @@ public class MainActivity extends AppCompatActivity {
                             });
                         }
 
+                        int retGetFeature03 = GVFaceRecognition.getInstance().GetFeature( mat01, feature03, tmpPos01, res, true, true);
+                        if( retGetFeature03 == GVFaceRecognition.SUCCESS ){
+                            final String strSDK = "[SDK TNN results 03: feature02[0,1,128,510,511] \n("
+                                    + feature03[0] + ","+ feature03[1] + ","+ feature03[128] + ","+ feature03[510] + ","+ feature03[511]
+                                    + ")\n FR time: [" + res[0] + "] ticks]\n";
 
-                        long  startTime = new Date().getTime();
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    textViewSDK03.setText(strSDK);
+                                }
+                            });
+
+                            Log.d("MainActivity","retGetFeature02" + strSDK);
+                        }else{
+                            final String strSDK= "[SDK results 02: FD not found] \n";
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    textViewSDK03.setText(strSDK);
+                                }
+                            });
+                        }
+
+                        int retGetFeature04 = GVFaceRecognition.getInstance().GetFeature( mat02, feature04, tmpPos02, res, true, true);
+                        if( retGetFeature04 == GVFaceRecognition.SUCCESS ){
+                            final String strSDK = "[SDK TNN results 03: feature02[0,1,128,510,511] \n("
+                                    + feature04[0] + ","+ feature04[1] + ","+ feature04[128] + ","+ feature04[510] + ","+ feature04[511]
+                                    + ")\n FR time: [" + res[0] + "] ticks]\n";
+
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    textViewSDK04.setText(strSDK);
+                                }
+                            });
+
+                            Log.d("MainActivity","retGetFeature02" + strSDK);
+                        }else{
+                            final String strSDK= "[SDK results 02: FD not found] \n";
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    textViewSDK04.setText(strSDK);
+                                }
+                            });
+                        }
 
                         //compare features
+                        long  startTime = new Date().getTime();
                         float[] compareScore = new float[1];
+                        float[] compareScoreTNN = new float[1];
                         Arrays.fill(compareScore, 0);
                         int retCompare = GVFaceRecognition.getInstance().Compare(feature01,feature02,compareScore);
+                        int tnnCompare = GVFaceRecognition.getInstance().Compare(feature03,feature04,compareScoreTNN);
+                        long  doneTime = new Date().getTime() - startTime;
+                        //output scores
                         if( retCompare == GVFaceRecognition.SUCCESS ){
-                            final String strSDKscore1 = "SDK FR score: [" + compareScore[0] + "]\n" + "Compare time: " + (new Date().getTime() - startTime)+ "\n";
+                            final String strSDKscore1 =
+                                    "SDK TFlite FR score: [" + compareScore[0] + "]\n"
+                                            + "SDK TNN FR score: [" + compareScoreTNN[0] + "]\n" + "Compare time: " + doneTime+ "\n";
                             runOnUiThread(new Runnable() {
                                 @Override
                                 public void run() {
@@ -355,6 +412,8 @@ public class MainActivity extends AppCompatActivity {
                             });
                             Log.d("MainActivity","compareScore: " + strSDKscore1);
                         }
+
+
                     }
                 });//thread
 

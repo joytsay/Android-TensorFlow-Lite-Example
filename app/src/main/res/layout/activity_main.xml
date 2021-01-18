@@ -113,6 +113,26 @@
             android:textColor="@android:color/black" />
 
         <TextView
+            android:id="@+id/textViewSDKResult03"
+            android:layout_width="match_parent"
+            android:layout_height="70dp"
+            android:layout_gravity="start"
+            android:maxLines="20"
+            android:text="@string/SDK_TNN_embeddings03"
+            android:textAllCaps="false"
+            android:textColor="@android:color/black" />
+
+        <TextView
+            android:id="@+id/textViewSDKResult04"
+            android:layout_width="match_parent"
+            android:layout_height="70dp"
+            android:layout_gravity="start"
+            android:maxLines="20"
+            android:text="@string/SDK_TNN_embeddings04"
+            android:textAllCaps="false"
+            android:textColor="@android:color/black" />
+
+        <TextView
             android:id="@+id/textViewSDKScore"
             android:layout_width="match_parent"
             android:layout_height="31dp"

@@ -44,7 +44,8 @@ public class GVFaceRecognition {
     private static final String PATH_FACE_GV_MODEL = "model";
     private static final String FR_MODEL_NAME = "gvFR.tflite";
     private static final String MTCNN_MODEL_NAME = "mtcnn_freezed_model.pb";
-    public static final String FR_TNN[] = {"gvFR.quantized.tnnproto", "gvFR.quantized.tnnmodel"};
+//    public static final String FR_TNN[] = {"gvFR.quantized.tnnproto", "gvFR.quantized.tnnmodel"};
+    public static final String FR_TNN[] = {"gvFR.tnnproto", "gvFR.tnnmodel"};
     private static GVFaceRecognition gvFaceRecognitionInstance = null;
 
 //    private static GpuDelegate delegate;
@@ -106,7 +107,9 @@ public class GVFaceRecognition {
 
     public void CreateFR(final Context context) throws IOException {
         // load TNN model
-        tnnFR.init(FR_TNN[0],FR_TNN[1],context.getFilesDir().getAbsolutePath() + File.separator + PATH_FACE_GV_MODEL,false);
+        Log.d("gvFR", "TNN proto:" + context.getFilesDir().getAbsolutePath() + File.separator + PATH_FACE_GV_MODEL+ File.separator + FR_TNN[0]);
+        Log.d("gvFR", "TNN model:" + context.getFilesDir().getAbsolutePath() + File.separator + PATH_FACE_GV_MODEL+ File.separator + FR_TNN[1]);
+        tnnFR.init(FR_TNN[0],FR_TNN[1],context.getFilesDir().getAbsolutePath() + File.separator + PATH_FACE_GV_MODEL+ File.separator,false);
 
         // load model
         long createFRstartTime = new Date().getTime();
@@ -133,7 +136,7 @@ public class GVFaceRecognition {
         Log.d("gvFR", "CreateFR runTime: " + runTime + " ticks\n");
     }
 
-    public int GetFeature(Mat ImageMat, float[] feature, FaceInfo faceinfo, int[] res, boolean isSaveImage) {
+    public int GetFeature(Mat ImageMat, float[] feature, FaceInfo faceinfo, int[] res, boolean isSaveImage, boolean bUseTNN) {
         Bitmap resultBitmap = Bitmap.createBitmap(ImageMat.cols(),  ImageMat.rows(),Bitmap.Config.RGB_565);;
         Utils.matToBitmap(ImageMat, resultBitmap);
         List<org.opencv.core.Point> rectPoints = new ArrayList<>();
@@ -228,16 +231,32 @@ public class GVFaceRecognition {
             }
             float[][] embeddingsOrigin = new float[1][FEATURE_SIZE];
             float[][] embeddingsMirror = new float[1][FEATURE_SIZE];
-            ByteBuffer byteBuffer = convertBitmapToByteBuffer(output);
-            interpreter.run(byteBuffer, embeddingsOrigin);
-            ByteBuffer byteBufferMirror = convertBitmapToByteBuffer(mirrorOutput);
-            interpreter.run(byteBufferMirror, embeddingsMirror);
+            if(!bUseTNN) { //TFlite
+                ByteBuffer byteBuffer = convertBitmapToByteBuffer(output);
+                ByteBuffer byteBufferMirror = convertBitmapToByteBuffer(mirrorOutput);
+                interpreter.run(byteBuffer, embeddingsOrigin);
+                interpreter.run(byteBufferMirror, embeddingsMirror);
+            }else {
+                byte[] imageDataBytes = null;
+                tnnFR.run(output,imageDataBytes,output.getWidth(),output.getHeight());
+                tnnFR.run(mirrorOutput,imageDataBytes,mirrorOutput.getWidth(),mirrorOutput.getHeight());
+            }
             for(int i=0;i<FEATURE_SIZE;i++){
                 embeddings[0][i] = (float) ((embeddingsOrigin[0][i] + embeddingsMirror[0][i])*0.5);
             }
         }else{ //no jitter
-            ByteBuffer byteBuffer = convertBitmapToByteBuffer(output);
-            interpreter.run(byteBuffer, embeddings);
+            if(!bUseTNN) { //TFlite
+                ByteBuffer byteBuffer = convertBitmapToByteBuffer(output);
+                interpreter.run(byteBuffer, embeddings);
+            }else{
+                Bitmap tnnOutput = Bitmap.createBitmap(INPUT_SIZE, INPUT_SIZE, Bitmap.Config.ARGB_8888);
+                Utils.matToBitmap(resultMat, tnnOutput);
+                SaveImage(tnnOutput, randomUUID);
+                byte[] imageDataBytes = null;
+                imageDataBytes = bitampToByteArray(tnnOutput);
+                Log.d("gvFR", "imageDataBytes length:" + imageDataBytes.length);
+                embeddings[0] = tnnFR.run(tnnOutput,imageDataBytes,tnnOutput.getWidth(),tnnOutput.getHeight());
+            }
         }
         long FRendTime = new Date().getTime();
         res[0] = (int) (FRendTime - FRstartTime);
@@ -246,6 +265,13 @@ public class GVFaceRecognition {
                 + ") runTime(" + res[0] + ") ticks\n");
         System.arraycopy(embeddings[0], 0, feature, 0, embeddings[0].length);
         return SUCCESS;
+    }
+
+    protected byte[] bitampToByteArray(Bitmap bitmap) {
+        int bytes = bitmap.getByteCount();
+        ByteBuffer buf = ByteBuffer.allocate(bytes);
+        bitmap.copyPixelsToBuffer(buf);
+        return buf.array();
     }
 
     public int GetFeatureByBitmap(Bitmap resultBitmap, float[] feature, List faceinfos, int[] res) { //deprecated
