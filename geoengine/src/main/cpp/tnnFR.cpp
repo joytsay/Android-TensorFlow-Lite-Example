@@ -72,6 +72,7 @@ TNNFR::TNNFR(std::string proto, std::string model, bool useGPU) {
             ins = TNNFR::net->CreateInst(network_config, status, shapeMap);
         }
         TNNFR::instance = ins;
+        auto ret = ins->SetCpuNumThreads(2);
         LOGD("TNNFR init model succeed return status:(%d)", (int)status);
 
         if (status != TNN_NS::TNN_OK) {
