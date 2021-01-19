@@ -14,6 +14,13 @@
 bin/
 gen/
 out/
+debug/
+release/
+*/.cxx
+
+# model
+*.tflite
+*.tnn*
 
 # Gradle files
 .gradle/
@@ -66,3 +73,4 @@ fastlane/Preview.html
 fastlane/screenshots
 fastlane/test_output
 fastlane/readme.md
+/geoengine/.cxx/cmake/debug/arm64-v8a/.ninja_deps
