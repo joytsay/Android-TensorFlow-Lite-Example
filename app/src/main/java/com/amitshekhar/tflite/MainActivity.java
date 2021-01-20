@@ -51,8 +51,8 @@ public class MainActivity extends AppCompatActivity {
     //interface for face_x1_sdk
     private static final int REQUEST_CODE_PERMISSION = 2;
 
-    private static final String MODEL_PATH = "gvFR.tflite";
-    private static final boolean QUANT = true;
+//    private static final String MODEL_PATH = "gvFR.tflite";
+//    private static final boolean QUANT = true;
     private static final int INPUT_SIZE = 112;
 
     private Classifier classifier;
@@ -298,7 +298,7 @@ public class MainActivity extends AppCompatActivity {
                         //extract feature via FR from image
                         int retGetFeature01 = GVFaceRecognition.getInstance().GetFeature( mat01, feature01, tmpPos01, res, true, false);
                         if( retGetFeature01 == GVFaceRecognition.SUCCESS ){
-                            final String strSDK= "[SDK TFlite results 01: feature01[0,1,128,510,511] \n("
+                            final String strSDK= "[SDK TFlite face 01: feature01[0,1,128,510,511] \n("
                                     + feature01[0] + ","+ feature01[1] + ","+ feature01[128] + ","+ feature01[510] + ","+ feature01[511]
                                     + ")\n FR time: [" + res[0] + "] ticks]\n";
                             runOnUiThread(new Runnable() {
@@ -309,7 +309,7 @@ public class MainActivity extends AppCompatActivity {
                             });
                             Log.d("MainActivity","retGetFeature01" + strSDK);
                         }else{
-                            final String strSDK= "[SDK TFlite results 01: FD not found] \n";
+                            final String strSDK= "[SDK TFlite face 01: FD not found] \n";
                             runOnUiThread(new Runnable() {
                                 @Override
                                 public void run() {
@@ -321,7 +321,7 @@ public class MainActivity extends AppCompatActivity {
 
                         int retGetFeature02 = GVFaceRecognition.getInstance().GetFeature( mat02, feature02, tmpPos02, res, true, false);
                         if( retGetFeature02 == GVFaceRecognition.SUCCESS ){
-                            final String strSDK = "[SDK TFlite results 02: feature03[0,1,128,510,511] \n("
+                            final String strSDK = "[SDK TFlite face 02: feature02[0,1,128,510,511] \n("
                                     + feature02[0] + ","+ feature02[1] + ","+ feature02[128] + ","+ feature02[510] + ","+ feature02[511]
                                     + ")\n FR time: [" + res[0] + "] ticks]\n";
 
@@ -334,7 +334,7 @@ public class MainActivity extends AppCompatActivity {
 
                             Log.d("MainActivity","retGetFeature02" + strSDK);
                         }else{
-                            final String strSDK= "[SDK TFlite results 02: FD not found] \n";
+                            final String strSDK= "[SDK TFlite face 02: FD not found] \n";
                             runOnUiThread(new Runnable() {
                                 @Override
                                 public void run() {
@@ -345,7 +345,7 @@ public class MainActivity extends AppCompatActivity {
 
                         int retGetFeature03 = GVFaceRecognition.getInstance().GetFeature( mat01, feature03, tmpPos01, res, true, true);
                         if( retGetFeature03 == GVFaceRecognition.SUCCESS ){
-                            final String strSDK = "[SDK TNN results 03: feature02[0,1,128,510,511] \n("
+                            final String strSDK = "[SDK TNN face 01: feature03[0,1,128,510,511] \n("
                                     + feature03[0] + ","+ feature03[1] + ","+ feature03[128] + ","+ feature03[510] + ","+ feature03[511]
                                     + ")\n FR time: [" + res[0] + "] ticks]\n";
 
@@ -356,9 +356,9 @@ public class MainActivity extends AppCompatActivity {
                                 }
                             });
 
-                            Log.d("MainActivity","retGetFeature02" + strSDK);
+                            Log.d("MainActivity","retGetFeature03" + strSDK);
                         }else{
-                            final String strSDK= "[SDK results 02: FD not found] \n";
+                            final String strSDK= "[SDK TNN face 01: FD not found] \n";
                             runOnUiThread(new Runnable() {
                                 @Override
                                 public void run() {
@@ -369,7 +369,7 @@ public class MainActivity extends AppCompatActivity {
 
                         int retGetFeature04 = GVFaceRecognition.getInstance().GetFeature( mat02, feature04, tmpPos02, res, true, true);
                         if( retGetFeature04 == GVFaceRecognition.SUCCESS ){
-                            final String strSDK = "[SDK TNN results 03: feature02[0,1,128,510,511] \n("
+                            final String strSDK = "[SDK TNN face 02: feature04[0,1,128,510,511] \n("
                                     + feature04[0] + ","+ feature04[1] + ","+ feature04[128] + ","+ feature04[510] + ","+ feature04[511]
                                     + ")\n FR time: [" + res[0] + "] ticks]\n";
 
@@ -380,9 +380,9 @@ public class MainActivity extends AppCompatActivity {
                                 }
                             });
 
-                            Log.d("MainActivity","retGetFeature02" + strSDK);
+                            Log.d("MainActivity","retGetFeature04" + strSDK);
                         }else{
-                            final String strSDK= "[SDK results 02: FD not found] \n";
+                            final String strSDK= "[SDK TNN face 02: FD not found] \n";
                             runOnUiThread(new Runnable() {
                                 @Override
                                 public void run() {

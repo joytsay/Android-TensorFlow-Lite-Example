@@ -44,7 +44,7 @@ public class GVFaceRecognition {
     private static final String PATH_FACE_GV_MODEL = "model";
     private static final String FR_MODEL_NAME = "gvFR.tflite";
     private static final String MTCNN_MODEL_NAME = "mtcnn_freezed_model.pb";
-//    public static final String FR_TNN[] = {"gvFR.quantized.tnnproto", "gvFR.quantized.tnnmodel"};
+//    public static final String FR_TNN[] = {"model.quantized.tnnproto", "model.quantized.tnnmodel"};
     public static final String FR_TNN[] = {"gvFR.tnnproto", "gvFR.tnnmodel"};
     private static GVFaceRecognition gvFaceRecognitionInstance = null;
 

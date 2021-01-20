@@ -7,10 +7,10 @@
     <string name="fr_run">Run Face Recognition</string>
     <string name="fr_embeddings">FR Results:</string>
     <string name="fr_score">FR Score:</string>
-    <string name="fr_runSDK">Run Face One SDK</string>
-    <string name="SDK_Tflite_embeddings01">SDK Results 01:</string>
-    <string name="SDK_Tflite_embeddings02">SDK Results 02:</string>
-    <string name="SDK_TNN_embeddings03">SDK Results 03:</string>
-    <string name="SDK_TNN_embeddings04">SDK Results 04:</string>
+    <string name="fr_runSDK">Run Face SDK</string>
+    <string name="SDK_Tflite_embeddings01">SDK TFlite Results 01:</string>
+    <string name="SDK_Tflite_embeddings02">SDK TFlite Results 02:</string>
+    <string name="SDK_TNN_embeddings03">SDK TNN Results 01:</string>
+    <string name="SDK_TNN_embeddings04">SDK TNN Results 02:</string>
     <string name="SDK_score">SDK Score:</string>
 </resources>

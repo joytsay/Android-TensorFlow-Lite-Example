@@ -133,12 +133,14 @@ std::vector<float> TNNFR::run(JNIEnv *env, jobject bitmap) {
 //    TNN_NS::ResizeParam param;
 //    TNN_NS::MatUtils::Resize(*input_mat, *resize_mat, param, command_queue);
     LOGD("TNNFR::run 9");
-    // 输入数据
+    // 输入数据 //formular: y = scale*x + bias
     TNN_NS::MatConvertParam input_cvt_param;
-//    input_cvt_param.scale = {1.0 / 255, 1.0 / 255, 1.0 / 255, 0.0};
-//    input_cvt_param.bias = {0.0, 0.0, 0.0, 0.0};
-    input_cvt_param.scale = { 0.0078125, 0.0078125, 0.0078125, 0 };
-    input_cvt_param.bias = { -128*0.0078125, -128*0.0078125 , -128*0.0078125, 0 };
+    input_cvt_param.scale = { 0.007843137255, 0.007843137255, 0.007843137255}; // 2/255
+    input_cvt_param.bias = { -1.0, -1.0 , -1.0}; // -(255/2)*(2/255)
+
+//    input_cvt_param.scale = {1.0 / 128, 1.0 / 128, 1.0 / 128, 0.0};
+//    input_cvt_param.bias = {-127.0 / 128, -127.0 / 128, -127.0 / 128, 0.0};
+
     auto status = TNNFR::instance->SetInputMat(input_mat, input_cvt_param);
     if (status != TNN_NS::TNN_OK) {
         LOGE("instance.SetInputMat Error: %s", status.description().c_str());
