@@ -238,8 +238,8 @@ public class GVFaceRecognition {
                 interpreter.run(byteBufferMirror, embeddingsMirror);
             }else {
                 byte[] imageDataBytes = null;
-                tnnFR.run(output,imageDataBytes,output.getWidth(),output.getHeight());
-                tnnFR.run(mirrorOutput,imageDataBytes,mirrorOutput.getWidth(),mirrorOutput.getHeight());
+                tnnFR.run(output);
+                tnnFR.run(mirrorOutput);
             }
             for(int i=0;i<FEATURE_SIZE;i++){
                 embeddings[0][i] = (float) ((embeddingsOrigin[0][i] + embeddingsMirror[0][i])*0.5);
@@ -249,13 +249,10 @@ public class GVFaceRecognition {
                 ByteBuffer byteBuffer = convertBitmapToByteBuffer(output);
                 interpreter.run(byteBuffer, embeddings);
             }else{
-                Bitmap tnnOutput = Bitmap.createBitmap(INPUT_SIZE, INPUT_SIZE, Bitmap.Config.ARGB_8888);
+                Bitmap tnnOutput = Bitmap.createBitmap(resultMat.cols(), resultMat.rows(), Bitmap.Config.ARGB_8888);
                 Utils.matToBitmap(resultMat, tnnOutput);
                 SaveImage(tnnOutput, randomUUID);
-                byte[] imageDataBytes = null;
-                imageDataBytes = bitampToByteArray(tnnOutput);
-                Log.d("gvFR", "imageDataBytes length:" + imageDataBytes.length);
-                embeddings[0] = tnnFR.run(tnnOutput,imageDataBytes,tnnOutput.getWidth(),tnnOutput.getHeight());
+                embeddings[0] = tnnFR.run(tnnOutput);
             }
         }
         long FRendTime = new Date().getTime();

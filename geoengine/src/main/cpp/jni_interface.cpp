@@ -60,8 +60,7 @@ Java_tw_com_geovision_geoengine_tnn_tnnFR_init(JNIEnv *env, jclass clazz, jstrin
     }
 }extern "C"
 JNIEXPORT jfloatArray JNICALL
-Java_tw_com_geovision_geoengine_tnn_tnnFR_run(JNIEnv *env, jclass clazz, jobject bitmap,
-                                              jbyteArray image_bytes, jint width, jint height) {
+Java_tw_com_geovision_geoengine_tnn_tnnFR_run(JNIEnv *env, jclass clazz, jobject bitmap) {
     LOGD("TNNFR::run 14");
     auto result = TNNFR::extractor->run(env, bitmap);
     LOGD("TNNFR::run 15");
