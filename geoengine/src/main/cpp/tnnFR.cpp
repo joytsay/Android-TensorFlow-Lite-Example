@@ -65,6 +65,7 @@ TNNFR::TNNFR(std::string proto, std::string model, bool useGPU) {
         TNN_NS::NetworkConfig network_config;
         network_config.library_path = {""};
         network_config.device_type = TNNFR::device_type;
+        network_config.precision = TNN_NS::PRECISION_HIGH;
         auto ins = TNNFR::net->CreateInst(network_config, status, shapeMap);
         if (status != TNN_NS::TNN_OK || !ins) {
             LOGW("GPU initialization failed, switch to CPU");
@@ -75,6 +76,7 @@ TNNFR::TNNFR(std::string proto, std::string model, bool useGPU) {
         }
         TNNFR::instance = ins;
         auto ret = ins->SetCpuNumThreads(2);
+
         LOGD("TNNFR init model succeed return status:(%d)", (int)status);
 
         if (status != TNN_NS::TNN_OK) {
@@ -95,60 +97,28 @@ std::vector<float> TNNFR::run(JNIEnv *env, jobject bitmap) {
     LOGD("TNNFR::run start");
     std::vector<float> results;
     AndroidBitmapInfo bitmapInfo;
-    LOGD("TNNFR::run 1");
     void *imageSource;
     if (AndroidBitmap_getInfo(env, bitmap, &bitmapInfo) < 0) {
-        LOGD("TNNFR::run 1.1");
         return results;
     }
-    LOGD("TNNFR::run 2");
     if (bitmapInfo.format != ANDROID_BITMAP_FORMAT_RGBA_8888) {
-        LOGD("TNNFR::run 2.1");
         return results;
     }
-    LOGD("TNNFR::run 3");
     if (AndroidBitmap_lockPixels(env, bitmap, &imageSource) < 0) {
-        LOGD("TNNFR::run 3.1");
         return results;
     }
-    LOGD("TNNFR::run 4");
     int image_h = bitmapInfo.height;
     int image_w = bitmapInfo.width;
-    LOGD("TNNFR::run 5 image_h(%d) image_w(%d)",image_h,image_w);
-//    u_int8_t *pictureRGB;
-//    pictureRGB = new u_int8_t[224*224*sizeof(u_int8_t)];
-//    memcpy(imageSource, pictureRGB, 224*224*sizeof(u_int8_t));
-//    for (int i = 0; i < net_height*net_width*3; ++i) {
-//        if(i<20 || i>150508) {
-//            usleep(1);
-//            LOGD("pictureRGB[%d]: %d", i, pictureRGB[i]);
-//        }
-//    }
-    // 原始图片get
+    LOGD("TNNFR:: image_h(%d) image_w(%d)",image_h,image_w);
+    // 模型输入
     TNN_NS::DeviceType dt = TNN_NS::DEVICE_ARM;  // 当前数据来源始终位于CPU，不需要设置成OPENCL，tnn自动复制cpu->gpu
-    TNN_NS::DimsVector image_dims = {1, 4, image_h, image_w};
+    TNN_NS::DimsVector image_dims = {1, 4, 224, 224};
+    // 原始图片get
     auto input_mat = std::make_shared<TNN_NS::Mat>(dt, TNN_NS::N8UC4, image_dims, imageSource);
-
-    LOGD("TNNFR::run 6");
-//    // 模型输入
-//    TNN_NS::DimsVector target_dims = {1, 3, net_height, net_width};
-//    auto resize_mat = std::make_shared<TNN_NS::Mat>(dt, TNN_NS::N8UC4, target_dims);
-//    LOGD("TNNFR::run 7");
-//////     OPENCL需要设置queue
-//    void *command_queue = nullptr;
-//    auto status = TNNFR::instance->GetCommandQueue(&command_queue);
-//    if (status != TNN_NS::TNN_OK) {
-//        LOGE("MatUtils::GetCommandQueue Error: %s", status.description().c_str());
-//    }
-////    LOGD("TNNFR::run 8");
-////     转换大小
-//    TNN_NS::ResizeParam param;
-//    TNN_NS::MatUtils::Resize(*input_mat, *resize_mat, param, command_queue);
-//    LOGD("TNNFR::run 9");
     // 输入数据 //formular: y = scale*x + bias
     TNN_NS::MatConvertParam input_cvt_param;
     input_cvt_param.scale = { 0.007843137255, 0.007843137255, 0.007843137255, 0.0}; // 2/255
-    input_cvt_param.bias = { -1.0, -1.0 , -1.0, 0.0}; // -(255/2)*(2/255)
+    input_cvt_param.bias = { -1.0, -1.0, -1.0, 0.0}; // -(255/2)*(2/255)
     LOGD("input_mat net_height[%d] net_width[%d]",net_height,net_width);
     for (int i = 0; i < net_height*net_width*3; ++i) {
         if(i<20 || i>150508){
@@ -156,21 +126,13 @@ std::vector<float> TNNFR::run(JNIEnv *env, jobject bitmap) {
             LOGD("resize_mat[%d]: %d",i,*((uint8_t*)input_mat->GetData()+i));
         }
     }
+
     auto status = TNNFR::instance->SetInputMat(input_mat, input_cvt_param);
-//    for (int i = 0; i < net_height*net_width*3; ++i) {
-//        if(i<20 || i>150508){
-//            usleep(1);
-//            LOGD("input_mat_post[%d]: %d",i,*((uint8_t*)input_mat->GetData()+i));
-//        }
-//    }
     if (status != TNN_NS::TNN_OK) {
         LOGE("instance.SetInputMat Error: %s", status.description().c_str());
     }
     LOGD("TNNFR::run 10");
     // 前向
-//    TNN_NS::Callback callback;
-//    status = TNNFR::instance->ForwardAsync(callback);
-//    status = TNNFR::instance->Forward();
     status = TNNFR::instance->ForwardAsync(nullptr);
     if (status != TNN_NS::TNN_OK) {
         LOGE("instance.Forward Error: %s", status.description().c_str());
@@ -187,39 +149,25 @@ std::vector<float> TNNFR::run(JNIEnv *env, jobject bitmap) {
     gettimeofday(&tv_end, NULL);
     double elapsed = (tv_end.tv_sec - tv_begin.tv_sec) * 1000.0 + (tv_end.tv_usec - tv_begin.tv_usec) / 1000.0;
     LOGD("TNNFR::run time: %f ms", elapsed);
-//    }
     // 后处理
     float * data = (float *)output_mat->GetData();
-
-//    int c = output_mat->GetChannel();
-//    int h = output_mat->GetHeight();
-//    int w = output_mat->GetWidth();
-//    LOGD("TNNFR::run GetChannel:%d, GetHeight:%d, GetWidth:%d", c,h,w);
+    int c = output_mat->GetChannel();
+    int h = output_mat->GetHeight();
+    int w = output_mat->GetWidth();
+    LOGD("TNNFR::run GetChannel:%d, GetHeight:%d, GetWidth:%d", c,h,w);
 //    for(int j = 0; j< c; j++){
 //        for(int k = 0; k < h; k++){
 //            for(int p = 0; p < w; p++){
-//                LOGD("data%d:%f ",data[j*h*w + k*w + p], j*h*w + k*w + p);
+//                LOGD("data%d:%f ", data[j * h * w + k * w + p], j * h * w + k * w + p);
 //            }
 //        }
 //    }
-
     LOGD("TNNFR::run data[0,1,128,510,511]:[%f,%f,%f,%f,%f]",data[0],data[1],data[128],data[510],data[511]);
     for (int i = 0; i < 512; ++i) {
         results.push_back(data[i]);
     }
     LOGD("TNNFR::run feature[0,1,128,510,511]:[%f,%f,%f,%f,%f]",
             results.data()[0], results.data()[1], results.data()[128], results.data()[510], results.data()[511]);
-
-    int count =0;
-    for (int i = 0; i < 512; ++i) {
-//        if(i<20 || i>500){
-//            usleep(1);
-//            LOGD("results.data()[%d]: %f",i,results.data()[i]);
-//        }
-        data[i] = 0.0;
-        count = i;
-    }
-    LOGD("count[%d] done",count);
     AndroidBitmap_unlockPixels(env, bitmap);
     if (status != TNN_NS::TNN_OK) {
         LOGE("get outputmat fail");

@@ -11,6 +11,15 @@
 #include "tnn/utils/blob_converter.h"
 #include "tnn/utils/mat_utils.h"
 
+#include "tnn/core/common.h"
+#include "tnn/core/instance.h"
+#include "tnn/core/macro.h"
+#include "tnn/core/tnn.h"
+#include "tnn/utils/blob_converter.h"
+#include "tnn/utils/cpu_utils.h"
+#include "tnn/utils/data_type_utils.h"
+#include "tnn/utils/dims_vector_utils.h"
+
 #ifndef LOG_TAG
 #define LOG_TAG "FR_TNN"
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG,LOG_TAG ,__VA_ARGS__) // 定义LOGD类型

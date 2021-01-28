@@ -14,8 +14,8 @@
 #ifndef TNN_INCLUDE_TNN_VERSION_H_
 #define TNN_INCLUDE_TNN_VERSION_H_
 
-static char *branch_name_tnn = "master";
-static char *commit_date_tnn = "2020-10-20";
-static char *commit_hash_tnn = "0dc11ef";
+static char *branch_name_tnn = "hotfix_issue_751";
+static char *commit_date_tnn = "2021-01-25";
+static char *commit_hash_tnn = "f4e74b4e";
 
 #endif //TNN_INCLUDE_TNN_VERSION_H_
